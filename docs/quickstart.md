@@ -14,6 +14,12 @@ source ~/keel/keel.env
 `--skip-tools` is useful while the compiler repository is still private or when
 you already have local tool checkouts under `tools/`.
 
+If you move or rename the Keel checkout after bootstrapping, rerun
+`./install.sh` from the new root. Python virtual environments and editable
+installs record absolute paths, so the generated environment and tool venvs
+must be refreshed after a move. Use `--update-tools` only when you also want
+clean tool checkouts moved back to the manifest refs.
+
 ## 2. Inspect The Example Fixture
 
 ```bash

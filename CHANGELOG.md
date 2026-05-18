@@ -28,6 +28,10 @@ public changelog.
 - Removed old wrapper names and old environment variables.
 - Moved raw local review artifacts under ignored `private/` storage.
 - Made `tools/` an ignored install target rather than a tracked source tree.
+- Propagated the install-time Python selection through generated `keel.env`
+  for non-venv tool wrappers and health checks.
+- Documented that tool virtual environments must be refreshed after moving the
+  Keel checkout.
 
 ### Known Blockers
 

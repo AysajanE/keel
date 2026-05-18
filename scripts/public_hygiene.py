@@ -31,7 +31,7 @@ TEXT_SUFFIXES = {
     ".yml",
 }
 BANNED_PATTERNS = [
-    (re.compile(r"\bshipyard\b", re.IGNORECASE), "legacy project name"),
+    (re.compile(r"\bshipyard\w*\b", re.IGNORECASE), "legacy project name"),
     (re.compile(r"~/shipyard"), "legacy home path"),
     (re.compile(r"/Users/aeziz-local/shipyard"), "legacy local absolute path"),
     (re.compile(r"\bsy-(compile|run|doctor|swr|cli)\b"), "legacy wrapper name"),

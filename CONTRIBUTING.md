@@ -47,6 +47,10 @@ tool needs optional extras for its health check or normal wrapper execution,
 add an explicit manifest field and installer support in the same change; do not
 make undeclared extras an implicit install requirement.
 
+Python virtual environments and editable installs are path-bound. After moving
+or renaming a Keel checkout, rerun `./install.sh` from the new root so generated
+env files and tool venvs point at the current checkout.
+
 ## Public Docs
 
 Raw local review notes belong in ignored `private/` storage. Public docs should
