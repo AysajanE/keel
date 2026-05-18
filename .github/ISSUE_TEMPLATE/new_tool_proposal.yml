@@ -1,0 +1,28 @@
+name: New tool proposal
+description: Propose a tool for the Keel manifest.
+title: "[tool]: "
+labels: ["tool-proposal"]
+body:
+  - type: input
+    id: repo
+    attributes:
+      label: Repository
+      description: Canonical GitHub URL.
+    validations:
+      required: true
+  - type: dropdown
+    id: required
+    attributes:
+      label: Required?
+      options:
+        - optional
+        - required
+    validations:
+      required: true
+  - type: textarea
+    id: role
+    attributes:
+      label: Role
+      description: What does this tool do in the Keel workflow?
+    validations:
+      required: true

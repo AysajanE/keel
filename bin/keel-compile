@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# keel-compile — thin wrapper for the Keel gstack->playbook compiler.
+#
+# Self-resolves KEEL_ROOT from this script's location, so it works
+# whether you sourced keel.env or invoked the wrapper by absolute path.
+#
+# Equivalent long form:
+#   python "$KEEL_ROOT/tools/compiler/automation/run_gstack_compiler.py" "$@"
+
+set -euo pipefail
+KEEL_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KEEL_ROOT="$(cd "$KEEL_BIN_DIR/.." && pwd)"
+export KEEL_ROOT
+PY="${KEEL_PYTHON:-python3}"
+exec "$PY" "$KEEL_ROOT/tools/compiler/automation/run_gstack_compiler.py" "$@"

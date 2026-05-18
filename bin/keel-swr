@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# keel-swr — wrapper for staged-workflow-runner (the high-stakes lane).
+#
+# Modes map onto SWR's four CLI scripts. For run_responses_v2.py, which
+# itself has subcommands run|resume|refresh, keel-swr exposes those as
+# top-level modes so the natural user spelling works.
+#
+#   keel-swr run ...           -> run_responses_v2.py run ...
+#   keel-swr resume ...        -> run_responses_v2.py resume ...
+#   keel-swr refresh ...       -> run_responses_v2.py refresh ...
+#   keel-swr supervisor <sub>  -> run_responses_supervisor_v2.py <sub> ...
+#                              <sub> ∈ {init-session, stage-scaffold,
+#                                       examine-scaffold, dry-run-scaffold,
+#                                       invoke-operator, invoke-reviewers,
+#                                       consolidate, accept, monitor,
+#                                       classify, archive-attempt,
+#                                       create-bundle, finalize-bundle,
+#                                       validate-session}
+#   keel-swr review-bundle ... -> create_review_bundle_v2.py ...
+#   keel-swr eval ...          -> run_responses_v2_eval.py ...
+#
+# SWR enforces one workspace root via --root. This wrapper never injects one.
+#
+# Path pre-resolution: unlike keel-run, this wrapper does NOT chdir into the
+# SWR repo before exec, so relative paths from the user's cwd already work
+# today. The loop below normalizes known path-bearing flag values to
+# absolute paths anyway, as defensive normalization. It mirrors keel-run's
+# pattern and future-proofs against any future chdir change.
+
+set -euo pipefail
+KEEL_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KEEL_ROOT="$(cd "$KEEL_BIN_DIR/.." && pwd)"
+KEEL_SWR_ROOT="$KEEL_ROOT/tools/staged-workflow-runner"
+export KEEL_ROOT KEEL_SWR_ROOT
+
+if [ "$#" -lt 1 ]; then
+  cat >&2 <<EOF
+usage: keel-swr <mode> [args...]
+modes:
+  run             -> run_responses_v2.py run
+  resume          -> run_responses_v2.py resume
+  refresh         -> run_responses_v2.py refresh
+  supervisor      -> run_responses_supervisor_v2.py <subcommand>
+  review-bundle   -> create_review_bundle_v2.py
+  eval            -> run_responses_v2_eval.py
+EOF
+  exit 2
+fi
+
+mode="$1"
+shift
+
+# Choose script + leading subcommand. run/resume/refresh inject themselves
+# as the subcommand of run_responses_v2.py; supervisor passes through.
+prepend_subcommand=""
+case "$mode" in
+  run|resume|refresh)
+    entry="run_responses_v2.py"
+    prepend_subcommand="$mode"
+    ;;
+  supervisor)
+    entry="run_responses_supervisor_v2.py"
+    ;;
+  review-bundle)
+    entry="create_review_bundle_v2.py"
+    ;;
+  eval)
+    entry="run_responses_v2_eval.py"
+    ;;
+  *)
+    echo "keel-swr: unknown mode '$mode' (expected run|resume|refresh|supervisor|review-bundle|eval)" >&2
+    exit 2
+    ;;
+esac
+
+# Path pre-resolution: normalize the value of known path-bearing flags to
+# absolute paths IF the value points at an existing local file/dir. URLs,
+# absolute paths, and unknown identifiers (session IDs, etc.) pass through
+# unchanged.
+PATH_FLAGS=(
+  --root
+  --workflow-file
+  --primary-job-input
+  --review-bundle
+  --clarified-task-brief
+  --scaffold-path
+  --run-dir
+  --evidence-path
+  --approval-token-file
+  --dataset-file
+  --artifact
+  --structured-artifact
+  --freeze-gate-file
+  --output
+  --primary-artifact-markdown
+  --response-artifact-json
+  --approved-handoff-markdown
+  --structured-artifact-json
+)
+
+is_path_flag() {
+  local f="$1"
+  for known in "${PATH_FLAGS[@]}"; do
+    [ "$f" = "$known" ] && return 0
+  done
+  return 1
+}
+
+resolve_if_local() {
+  local v="$1"
+  case "$v" in
+    /*|~*|http://*|https://*|file://*) printf '%s' "$v"; return ;;
+  esac
+  if [ -e "$v" ]; then
+    printf '%s' "$(cd "$(dirname "$v")" && pwd)/$(basename "$v")"
+  else
+    printf '%s' "$v"
+  fi
+}
+
+new_args=()
+prev=""
+for arg in "$@"; do
+  if [[ "$arg" == --*=* ]]; then
+    flag="${arg%%=*}"
+    value="${arg#*=}"
+    if is_path_flag "$flag"; then
+      value="$(resolve_if_local "$value")"
+    fi
+    new_args+=("${flag}=${value}")
+    prev="$flag"
+    continue
+  fi
+  if is_path_flag "$prev"; then
+    arg="$(resolve_if_local "$arg")"
+  fi
+  new_args+=("$arg")
+  prev="$arg"
+done
+
+PY="${KEEL_PYTHON:-python3}"
+if [ -n "$prepend_subcommand" ]; then
+  exec "$PY" "$KEEL_SWR_ROOT/automation/$entry" "$prepend_subcommand" "${new_args[@]}"
+else
+  exec "$PY" "$KEEL_SWR_ROOT/automation/$entry" "${new_args[@]}"
+fi

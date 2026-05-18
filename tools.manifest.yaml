@@ -1,0 +1,51 @@
+schema: keel_tools_manifest_v1
+default_ref_policy: pinned_commit_until_public_release_tags_exist
+
+tools:
+  - name: compiler
+    role: gstack artifacts to reviewed markdown_playbook_v1
+    url: https://github.com/AysajanE/gstack-playbook-compiler.git
+    ref: f964d4ec12ee8a97127f17f37effb328301014fd
+    ref_type: commit
+    required: true
+    install_type: python-editable
+    visibility: private
+    public_status: blocker_until_repository_is_public
+    license: MIT
+    health_check: python3 automation/run_gstack_compiler.py --help
+
+  - name: plan-orchestrator
+    role: reviewed markdown_playbook_v1 to audited execution
+    url: https://github.com/AysajanE/plan-orchestrator.git
+    ref: d6ae4ec4480ed29250dadb975446a82c8f8136aa
+    ref_type: commit
+    required: true
+    install_type: python-script
+    visibility: public
+    public_status: installable
+    license: MIT
+    health_check: python3 automation/run_plan_orchestrator.py --help
+
+  - name: staged-workflow-runner
+    role: high-stakes staged review and playbook authoring lane
+    url: https://github.com/AysajanE/staged-workflow-runner.git
+    ref: f1b595c4e68a5f8dc1a2e892117a3a5eebffe4dc
+    ref_type: commit
+    required: true
+    install_type: python-editable
+    visibility: public
+    public_status: installable
+    license: MIT
+    health_check: python3 automation/run_responses_v2.py --help
+
+  - name: gbrain
+    role: optional third-party local memory layer
+    url: https://github.com/garrytan/gbrain.git
+    ref: 1dadd9ed7161fa109f717c551e168d1d63946f80
+    ref_type: commit
+    required: false
+    install_type: bun-link
+    visibility: public
+    public_status: optional
+    license: MIT
+    health_check: bun --version

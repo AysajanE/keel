@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# keel-run — thin wrapper for plan-orchestrator (the executor).
+#
+# Self-resolves KEEL_ROOT from this script's location. Forwards every
+# argument unchanged. Use it for any plan-orchestrator subcommand:
+#   keel-run list-items   --playbook docs/playbooks/<slug>.playbook.md
+#   keel-run supervise run --playbook docs/playbooks/<slug>.playbook.md --next
+#   keel-run supervise status --run-id <RUN_ID> --format json
+#   keel-run mark-manual-gate --run-id <RUN_ID> --item <ID> --decision approved ...
+#
+# IMPORTANT: plan-orchestrator's CLI resolves the PO repo root from cwd. This
+# wrapper chdir's into the PO repo BEFORE executing so list-items/doctor/etc.
+# work no matter where you call it from. Path arguments you pass that are
+# relative to YOUR cwd are pre-resolved to absolute paths here so the chdir
+# does not break them.
+
+set -euo pipefail
+KEEL_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KEEL_ROOT="$(cd "$KEEL_BIN_DIR/.." && pwd)"
+KEEL_PO_ROOT="$KEEL_ROOT/tools/plan-orchestrator"
+export KEEL_ROOT KEEL_PO_ROOT
+
+# Simpler rebuild: shift through $@ and resolve --playbook|--external-evidence-dir
+# values to absolute paths if they look like relative file/dir arguments.
+new_args=()
+prev=""
+for arg in "$@"; do
+  case "$prev" in
+    --playbook|--external-evidence-dir|--evidence-path|--approval-token-file|--config)
+      if [ -e "$arg" ] && [ "${arg:0:1}" != "/" ]; then
+        arg="$(cd "$(dirname "$arg")" && pwd)/$(basename "$arg")"
+      fi
+      ;;
+  esac
+  new_args+=("$arg")
+  prev="$arg"
+done
+
+cd "$KEEL_PO_ROOT"
+PY="${KEEL_PYTHON:-python3}"
+exec "$PY" "$KEEL_PO_ROOT/automation/run_plan_orchestrator.py" "${new_args[@]}"

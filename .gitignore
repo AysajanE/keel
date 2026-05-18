@@ -1,0 +1,35 @@
+# Installed tool checkouts and generated local state.
+tools/*
+!tools/.gitkeep
+keel.env
+tools.lock
+private/
+
+# Secrets and local configuration.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python and JS build/runtime output.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+node_modules/
+dist/
+build/
+
+# Runner and agent runtime artifacts.
+.local/
+*.log
+
+# OS/editor files.
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.swp

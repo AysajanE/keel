@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keel: the idea → ship toolchain, explained from first principles</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #FAF7F0;
+    --ink: #1A1A2E;
+    --muted: #6B6B7B;
+    --rule: #E5E0D5;
+    --code-bg: #2B2D3E;
+    --code-ink: #F4F1E8;
+    --gstack: #E89B3C;
+    --compiler: #2A9D8F;
+    --swr: #7B5EA7;
+    --po: #3D5A80;
+    --human: #C44536;
+    --shadow: rgba(26, 26, 46, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; line-height: 1.6; }
+  body { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 42px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 28px; line-height: 1.2; margin: 56px 0 16px; letter-spacing: -0.01em; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+  h3 { font-size: 20px; margin: 32px 0 8px; }
+  h4 { font-size: 16px; margin: 20px 0 6px; }
+  p { margin: 8px 0 12px; }
+  .lead { font-size: 19px; color: var(--muted); margin: 0 0 40px; max-width: 760px; }
+  code { background: rgba(45, 47, 62, 0.08); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em; }
+  pre { background: var(--code-bg); color: var(--code-ink); padding: 16px 18px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; box-shadow: 0 2px 10px var(--shadow); }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  a { color: var(--po); text-decoration: none; border-bottom: 1px solid currentColor; }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .pill-gstack { background: rgba(232, 155, 60, 0.15); color: #B97824; }
+  .pill-compiler { background: rgba(42, 157, 143, 0.15); color: #1F7468; }
+  .pill-swr { background: rgba(123, 94, 167, 0.15); color: #594479; }
+  .pill-po { background: rgba(61, 90, 128, 0.15); color: #2C4767; }
+  .pill-human { background: rgba(196, 69, 54, 0.15); color: #9B3328; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .card { background: white; border: 1px solid var(--rule); border-radius: 12px; padding: 20px; box-shadow: 0 2px 14px var(--shadow); }
+  .card h3 { margin-top: 0; }
+  .insight { background: linear-gradient(0deg, rgba(232,155,60,0.06), rgba(232,155,60,0.06)); border-left: 3px solid var(--gstack); padding: 14px 16px; border-radius: 6px; margin: 16px 0; font-size: 14.5px; }
+  .insight strong { color: #B97824; }
+  .warn { background: rgba(196, 69, 54, 0.06); border-left: 3px solid var(--human); padding: 14px 16px; border-radius: 6px; margin: 16px 0; font-size: 14.5px; }
+  .warn strong { color: #9B3328; }
+
+  /* Tabs */
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 24px 0 0; border-bottom: 1px solid var(--rule); }
+  .tab { padding: 12px 18px; border: 0; background: transparent; cursor: pointer; font-size: 15px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--ink); border-bottom-color: currentColor; }
+  .tab[data-tool="gstack"].active { border-bottom-color: var(--gstack); color: var(--gstack); }
+  .tab[data-tool="compiler"].active { border-bottom-color: var(--compiler); color: var(--compiler); }
+  .tab[data-tool="po"].active { border-bottom-color: var(--po); color: var(--po); }
+  .tab[data-tool="swr"].active { border-bottom-color: var(--swr); color: var(--swr); }
+  .tab-panel { display: none; padding: 24px 0; }
+  .tab-panel.active { display: block; }
+
+  /* Big diagram */
+  .bigdiagram { background: white; border: 1px solid var(--rule); border-radius: 12px; padding: 28px; box-shadow: 0 2px 14px var(--shadow); margin: 16px 0 24px; }
+  .bigdiagram svg { width: 100%; height: auto; max-height: 380px; }
+  .bigdiagram .box { cursor: pointer; transition: transform 120ms ease; }
+  .bigdiagram .box:hover { transform: translateY(-2px); }
+  .bigdiagram .box.dim { opacity: 0.28; }
+
+  /* Walkthrough phases */
+  .phase { background: white; border: 1px solid var(--rule); border-left: 5px solid var(--rule); border-radius: 10px; margin: 14px 0; box-shadow: 0 1px 8px var(--shadow); }
+  .phase summary { cursor: pointer; padding: 16px 20px; font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 12px; list-style: none; }
+  .phase summary::-webkit-details-marker { display: none; }
+  .phase summary::after { content: "+"; margin-left: auto; font-weight: 400; color: var(--muted); font-size: 22px; }
+  .phase[open] summary::after { content: "−"; }
+  .phase[data-owner="gstack"] { border-left-color: var(--gstack); }
+  .phase[data-owner="compiler"] { border-left-color: var(--compiler); }
+  .phase[data-owner="swr"] { border-left-color: var(--swr); }
+  .phase[data-owner="po"] { border-left-color: var(--po); }
+  .phase[data-owner="human"] { border-left-color: var(--human); }
+  .phase-body { padding: 0 20px 20px; }
+  .step-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Decision tree */
+  .decision { background: white; padding: 24px; border: 1px solid var(--rule); border-radius: 12px; box-shadow: 0 2px 14px var(--shadow); }
+  .branch { margin: 8px 0 8px 24px; padding-left: 16px; border-left: 2px solid var(--rule); }
+  .q { font-weight: 600; }
+  .a { display: inline-block; padding: 6px 12px; border-radius: 6px; margin: 4px 6px 4px 0; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .a-yes { background: rgba(42, 157, 143, 0.12); color: var(--compiler); border: 1px solid rgba(42, 157, 143, 0.3); }
+  .a-no  { background: rgba(196, 69, 54, 0.10); color: var(--human); border: 1px solid rgba(196, 69, 54, 0.3); }
+
+  /* Comparison table */
+  table.compare { border-collapse: collapse; width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 8px var(--shadow); }
+  table.compare th, table.compare td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); font-size: 14.5px; }
+  table.compare th { background: rgba(61, 90, 128, 0.06); font-weight: 600; }
+  table.compare tr:last-child td { border-bottom: 0; }
+
+  /* Cheatsheet */
+  .cheat { background: var(--code-bg); color: var(--code-ink); padding: 22px 24px; border-radius: 12px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; box-shadow: 0 2px 14px var(--shadow); white-space: pre; overflow-x: auto; }
+
+  /* Animated arrows */
+  .flow svg { display: block; margin: 16px auto; }
+
+  /* TOC */
+  .toc { background: white; border: 1px solid var(--rule); border-radius: 10px; padding: 18px 24px; margin: 24px 0 32px; }
+  .toc h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { padding: 2px 0; }
+  .toc a { border-bottom: 0; }
+  .toc a:hover { border-bottom: 1px solid currentColor; }
+
+  .anchor { color: inherit; border-bottom: 0; }
+  .footnote { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  ul.tight { margin: 6px 0; padding-left: 24px; }
+  ul.tight li { margin: 2px 0; }
+  .kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; font-family: "SF Mono", Menlo, monospace; font-size: 12px; background: white; }
+</style>
+</head>
+<body>
+
+<h1>Keel</h1>
+<p style="margin: -4px 0 16px; font-size: 13px; color: var(--muted); font-style: italic;">The idea → design → plan → execute → ship toolchain. Daily commands live in <code>~/keel/bin/keel-*</code>.</p>
+<p class="lead">Four tools that take you from "I have an idea" to "I shipped a working product." Built from first principles, on one rule: <strong>every tool talks through one shared contract — never by importing each other's code.</strong></p>
+
+<div class="toc">
+  <h4>What's in this guide</h4>
+  <ol>
+    <li><a href="#big-picture">The big picture in one diagram</a></li>
+    <li><a href="#first-principles">First principles: why four tools instead of one</a></li>
+    <li><a href="#tools">Each tool, in plain English</a></li>
+    <li><a href="#contract">The contract that holds it together</a></li>
+    <li><a href="#two-paths">Two paths: fast lane vs. high-stakes lane</a></li>
+    <li><a href="#walkthrough">Walkthrough: Health Data Hub, end-to-end</a></li>
+    <li><a href="#after-po">What happens after plan-orchestrator finishes</a></li>
+    <li><a href="#decision">"Which tool should I use?" decision guide</a></li>
+    <li><a href="#boundaries">Safety boundaries that must not be crossed</a></li>
+    <li><a href="#cheatsheet">One-page command cheatsheet</a></li>
+  </ol>
+</div>
+
+<h2 id="big-picture">1. The big picture</h2>
+<p>You start with an idea. You end with a shipped product. The four tools are stops on that journey. Click any box to highlight its role; click again to clear.</p>
+
+<div class="bigdiagram" id="bigdiagram">
+  <svg viewBox="0 0 1000 360" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B6B7B"/>
+      </marker>
+      <marker id="arrowGstack" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#E89B3C"/>
+      </marker>
+    </defs>
+
+    <!-- Lane labels -->
+    <text x="500" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#6B6B7B" letter-spacing="2">IDEA → DESIGN → PLAN → EXECUTE → SHIP</text>
+
+    <!-- Idea -->
+    <g class="box" data-tool="idea">
+      <circle cx="60" cy="180" r="32" fill="#FAF7F0" stroke="#1A1A2E" stroke-width="2"/>
+      <text x="60" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="#1A1A2E">Idea</text>
+    </g>
+
+    <!-- gstack cockpit (LEFT) -->
+    <g class="box" data-tool="gstack" id="box-gstack-left">
+      <rect x="130" y="120" width="170" height="120" rx="14" fill="#FFF" stroke="#E89B3C" stroke-width="2.5"/>
+      <text x="215" y="148" text-anchor="middle" font-size="11" font-weight="700" fill="#E89B3C" letter-spacing="1.5">COCKPIT</text>
+      <text x="215" y="174" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A2E">gstack</text>
+      <text x="215" y="196" text-anchor="middle" font-size="12" fill="#6B6B7B">/office-hours</text>
+      <text x="215" y="212" text-anchor="middle" font-size="12" fill="#6B6B7B">/autoplan</text>
+      <text x="215" y="228" text-anchor="middle" font-size="12" fill="#6B6B7B">approved brief</text>
+    </g>
+
+    <!-- Compiler (CENTER) -->
+    <g class="box" data-tool="compiler">
+      <rect x="340" y="80" width="170" height="90" rx="14" fill="#FFF" stroke="#2A9D8F" stroke-width="2.5"/>
+      <text x="425" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#2A9D8F" letter-spacing="1.5">FAST LANE</text>
+      <text x="425" y="132" text-anchor="middle" font-size="15" font-weight="700" fill="#1A1A2E">compiler</text>
+      <text x="425" y="152" text-anchor="middle" font-size="11" fill="#6B6B7B">gstack→playbook</text>
+    </g>
+
+    <!-- SWR (CENTER, lower) -->
+    <g class="box" data-tool="swr">
+      <rect x="340" y="190" width="170" height="90" rx="14" fill="#FFF" stroke="#7B5EA7" stroke-width="2.5"/>
+      <text x="425" y="218" text-anchor="middle" font-size="11" font-weight="700" fill="#7B5EA7" letter-spacing="1.5">HIGH-STAKES</text>
+      <text x="425" y="242" text-anchor="middle" font-size="15" font-weight="700" fill="#1A1A2E">SWR</text>
+      <text x="425" y="262" text-anchor="middle" font-size="11" fill="#6B6B7B">staged review</text>
+    </g>
+
+    <!-- Contract bus -->
+    <g class="box" data-tool="contract">
+      <rect x="540" y="135" width="130" height="90" rx="14" fill="#FFF" stroke="#1A1A2E" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="605" y="158" text-anchor="middle" font-size="10" font-weight="700" fill="#1A1A2E" letter-spacing="1">CONTRACT</text>
+      <text x="605" y="182" text-anchor="middle" font-size="13" font-weight="700" fill="#1A1A2E">markdown_</text>
+      <text x="605" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="#1A1A2E">playbook_v1</text>
+    </g>
+
+    <!-- PO -->
+    <g class="box" data-tool="po">
+      <rect x="700" y="120" width="170" height="120" rx="14" fill="#FFF" stroke="#3D5A80" stroke-width="2.5"/>
+      <text x="785" y="148" text-anchor="middle" font-size="11" font-weight="700" fill="#3D5A80" letter-spacing="1.5">EXECUTOR</text>
+      <text x="785" y="172" text-anchor="middle" font-size="15" font-weight="700" fill="#1A1A2E">plan-orchestrator</text>
+      <text x="785" y="194" text-anchor="middle" font-size="11" fill="#6B6B7B">worktree per item</text>
+      <text x="785" y="210" text-anchor="middle" font-size="11" fill="#6B6B7B">Codex + Claude audit</text>
+      <text x="785" y="226" text-anchor="middle" font-size="11" fill="#6B6B7B">human gates</text>
+    </g>
+
+    <!-- gstack launch (RIGHT) -->
+    <g class="box" data-tool="gstack" id="box-gstack-right">
+      <rect x="895" y="148" width="90" height="64" rx="12" fill="#FFF" stroke="#E89B3C" stroke-width="2.5"/>
+      <text x="940" y="170" text-anchor="middle" font-size="11" font-weight="700" fill="#E89B3C" letter-spacing="1">LAUNCH</text>
+      <text x="940" y="190" text-anchor="middle" font-size="13" font-weight="700" fill="#1A1A2E">gstack</text>
+      <text x="940" y="204" text-anchor="middle" font-size="10" fill="#6B6B7B">/ship /deploy</text>
+    </g>
+
+    <!-- Arrows -->
+    <line x1="92" y1="180" x2="128" y2="180" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="300" y1="170" x2="338" y2="125" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="300" y1="200" x2="338" y2="235" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="510" y1="125" x2="538" y2="160" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="510" y1="235" x2="538" y2="200" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="670" y1="180" x2="698" y2="180" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="870" y1="180" x2="893" y2="180" stroke="#6B6B7B" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Bottom: products -->
+    <text x="500" y="335" text-anchor="middle" font-size="13" fill="#6B6B7B" font-style="italic">…and the orange box at both ends is the same tool. gstack starts the loop and closes it.</text>
+  </svg>
+</div>
+
+<div class="insight">
+  <strong>One sentence:</strong> gstack helps you decide <em>what</em> to build, the compiler turns that into a precise recipe, plan-orchestrator <em>builds</em> it one step at a time with quality checks, and gstack helps you <em>ship</em> the result. SWR is an optional safer-but-slower replacement for the compiler when the stakes are high.
+</div>
+
+<h2 id="first-principles">2. First principles — why four tools instead of one</h2>
+
+<p>You could imagine asking one giant AI agent: "Build me a health data hub." What goes wrong?</p>
+
+<div class="grid-2">
+  <div class="card">
+    <h3 style="color: var(--human);">⚠ Problem A: Conversation drifts</h3>
+    <p>The AI has good ideas, asks good questions — and then forgets what you decided three turns ago. The plan grows fuzzy. You can't tell what's "decided" vs. "still talking."</p>
+    <p class="footnote"><strong>Solution:</strong> separate <em>thinking</em> from <em>doing</em>. Lock decisions in a written design doc before any code is touched.</p>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--human);">⚠ Problem B: Execution is opaque</h3>
+    <p>The AI writes code. Does it work? Does it pass tests? Did it touch files it shouldn't have? Without strict process you find out only when something breaks in production.</p>
+    <p class="footnote"><strong>Solution:</strong> make execution <em>auditable</em>. One step at a time, in an isolated git worktree, with two independent reviewers (Codex + Claude) inspecting the same evidence.</p>
+  </div>
+</div>
+
+<h3>The architectural insight</h3>
+<p>Don't build one big tool that does everything. Build small tools, each excellent at one job, and have them talk through <strong>one shared file format</strong>:</p>
+
+<ul class="tight">
+  <li><strong>gstack</strong> excels at human conversation and review.</li>
+  <li><strong>compiler</strong> excels at deterministic translation: design doc → precise recipe.</li>
+  <li><strong>plan-orchestrator</strong> excels at strict, audited execution.</li>
+  <li><strong>SWR</strong> excels at multi-agent reviewed planning (only when needed).</li>
+</ul>
+
+<p>The shared format is <code>markdown_playbook_v1</code>. Everything between "design doc" and "running code" passes through it. That's the whole trick: a clean handoff between humans (who think) and the executor (which runs).</p>
+
+<div class="insight">
+  <strong>Why this matters in practice:</strong> If you ever want to replace the compiler with something better, you can — as long as the new tool still emits valid <code>markdown_playbook_v1</code>. The executor never changes. Same goes the other way: a smarter executor can drop in later. <strong>Contracts make systems evolvable.</strong>
+</div>
+
+<h2 id="tools">3. Each tool, in plain English</h2>
+<p>Click a tab. Each shows what the tool <em>is</em>, what it <em>does</em>, what it deliberately <em>refuses to do</em>, and how you use it.</p>
+
+<div class="tabs" role="tablist">
+  <button class="tab active" data-tool="gstack">gstack</button>
+  <button class="tab" data-tool="compiler">compiler</button>
+  <button class="tab" data-tool="po">plan-orchestrator</button>
+  <button class="tab" data-tool="swr">staged-workflow-runner</button>
+</div>
+
+<div class="tab-panel active" data-tool="gstack">
+  <p><span class="pill pill-gstack">cockpit</span> &nbsp; Built by Garry Tan (President of YC). Installed at <code>~/.claude/skills/gstack/</code>. <strong>23 slash commands</strong> that act as a virtual product team inside Claude Code.</p>
+  <div class="grid-2">
+    <div>
+      <h4>What it is</h4>
+      <p>A library of Markdown skills. Each skill is one specialist:</p>
+      <ul class="tight">
+        <li><code>/office-hours</code> — six forcing questions to lock down what you're building</li>
+        <li><code>/autoplan</code> — runs CEO, design, eng, DX reviews automatically</li>
+        <li><code>/plan-eng-review</code> — locks architecture and tests</li>
+        <li><code>/review</code> — finds production bugs before they ship</li>
+        <li><code>/qa</code> — opens a real browser, finds bugs, fixes with regression tests</li>
+        <li><code>/cso</code> — security audit (OWASP + STRIDE)</li>
+        <li><code>/ship</code> — opens a PR with version, CHANGELOG, doc sync</li>
+        <li><code>/land-and-deploy</code> — merges, deploys, verifies</li>
+        <li><code>/retro</code>, <code>/learn</code> — weekly retrospective + persistent memory</li>
+      </ul>
+    </div>
+    <div>
+      <h4>What it doesn't do</h4>
+      <ul class="tight">
+        <li>It does not execute structured code-change plans. That's plan-orchestrator's job.</li>
+        <li>It does not own state. <code>~/.gstack/projects/</code> is working memory; authoritative artifacts get promoted into the repo.</li>
+        <li>It does not approve plan-orchestrator's manual gates. Only you do, from your terminal.</li>
+      </ul>
+      <h4>How you use it</h4>
+      <p>Inside Claude Code. Just type <code>/office-hours</code> and describe what you're building. The skill takes over.</p>
+    </div>
+  </div>
+  <div class="insight"><strong>Mental model:</strong> gstack is the front and back of the loop. It helps you decide what to build (front) and helps you ship the result (back). In between, the compiler and plan-orchestrator do the structured work.</div>
+</div>
+
+<div class="tab-panel" data-tool="compiler">
+  <p><span class="pill pill-compiler">translator</span> &nbsp; Lives at <code>~/keel/tools/compiler</code>. Invoke via <code>keel-compile</code>. It bridges the gap between a gstack design doc (free-form conversation) and what plan-orchestrator needs (a strict structured recipe). Current stub output is scaffold-only until a real LLM row author is implemented.</p>
+  <div class="grid-2">
+    <div>
+      <h4>What it is</h4>
+      <p>A small Python program with four stages:</p>
+      <pre><code>1. Python parses your gstack design doc
+   → gstack_plan_ir_v1.json  (deterministic facts)
+
+2. Candidate row author
+   → po_candidate_rows_v1.json  (JSON rows only)
+   current shipped author: stub only
+
+3. Python compiler preflight
+   → compiler_validation_report_v1.json
+   (fails closed on bad paths, broad write-roots,
+    missing red/green commands, etc.)
+
+4. Python emits the final markdown
+   → docs/playbooks/&lt;slug&gt;.playbook.md
+
+5. PO validates its own contract
+   → list-items + doctor --playbook</code></pre>
+    </div>
+    <div>
+      <h4>The key rule</h4>
+      <p>A future LLM author may write <em>candidate rows</em>. It never writes the final Markdown table. Python owns:</p>
+      <ul class="tight">
+        <li>Markdown table formatting (avoids parser drift)</li>
+        <li>Validation verdicts (fails closed)</li>
+        <li>Narrow-roots safety checks</li>
+        <li>Running PO contract verification when the PO root is known</li>
+      </ul>
+      <h4>What it doesn't do</h4>
+      <ul class="tight">
+        <li>Never launches plan-orchestrator execution.</li>
+        <li>Never invents file paths the parser didn't observe in your design doc.</li>
+        <li>Never calls <code>mark-manual-gate</code>. Only you do.</li>
+        <li>Doesn't do multi-agent staged review. That's SWR's job.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="insight"><strong>v0 status (today):</strong> The compiler runs end-to-end with a deterministic <em>stub</em> author (no LLM API needed), but stub output is scaffold-only. Non-dry-run stub output fails unless <code>--allow-stub-output</code> is explicit, and PO <code>list-items</code> + <code>doctor</code> is mandatory when <code>--plan-orchestrator-root</code> is provided. The real LLM authors still raise <code>NotImplementedError</code>.</div>
+</div>
+
+<div class="tab-panel" data-tool="po">
+  <p><span class="pill pill-po">executor</span> &nbsp; Lives at <code>plan-orchestrator/</code>. The strict, careful runtime that turns a reviewed playbook into actual code changes — one step at a time.</p>
+  <div class="grid-2">
+    <div>
+      <h4>What it is</h4>
+      <p>A state machine. Each row of your playbook becomes one item that grinds through these states:</p>
+      <pre><code>setup_worktree → execute → verify
+  → audit_packet_ready
+  → audit_codex AND audit_claude (same packet)
+  → triage_merge (deterministic)
+  → one of four terminals:
+       passed
+       awaiting_human_gate
+       blocked_external
+       escalated</code></pre>
+      <p>Each item attempt lives in its own git worktree branch (<code>orchestrator/item/&lt;run_id&gt;/&lt;item_id&gt;/attempt-N</code>). Bad code can never leak into your main branch.</p>
+    </div>
+    <div>
+      <h4>What it doesn't do</h4>
+      <ul class="tight">
+        <li>Doesn't plan. Doesn't invent items. Takes one playbook file as input, that's it.</li>
+        <li>Doesn't browse the web.</li>
+        <li>Doesn't auto-approve human gates.</li>
+        <li>Doesn't fabricate external evidence. If a step needs human-supplied evidence, it stops at <code>blocked_external</code> and waits.</li>
+      </ul>
+      <h4>The dual-audit trick</h4>
+      <p>After verification, Codex and Claude both review the <em>same frozen packet</em>. Findings are canonicalized by hash. Two independent witnesses, not one.</p>
+    </div>
+  </div>
+  <div class="insight"><strong>The supervisor layer</strong> (<code>supervise run</code>) is an <em>additive</em> wrapper that adds heartbeats, fresh liveness probes, and bounded recovery — but the kernel state in <code>run_state.json</code> remains authoritative. The supervisor never approves a manual gate. Ever.</div>
+</div>
+
+<div class="tab-panel" data-tool="swr">
+  <p><span class="pill pill-swr">optional rigor</span> &nbsp; Lives at <code>staged-workflow-runner/</code>. A more careful, slower target path for high-stakes playbook generation, with multi-agent staged review along the way.</p>
+  <div class="grid-2">
+    <div>
+      <h4>What it is</h4>
+      <p>A manifest-driven runner for staged OpenAI Responses workflows. The generic gstack-to-PO task pack is a scaffold target; it should be used only after PO contract validation and human review:</p>
+      <pre><code>Stage 1: Scope and source authority
+Stage 2: Repo grounding and surfaces
+Stage 3: Execution row drafting
+Stage 4: Gates, risks, verification
+Stage 5: Final playbook emission
+        → markdown_playbook_v1
+          (same shape the compiler produces)</code></pre>
+      <p>Between every stage, three agents review independently: operator Codex, read-only Codex, read-only Claude. You explicitly accept only changes that have applied-change evidence.</p>
+    </div>
+    <div>
+      <h4>When to use it instead of the compiler</h4>
+      <p>The <strong>human picks</strong> — it's never auto-forced. Suggested triggers:</p>
+      <ul class="tight">
+        <li>security / auth / secrets / payments / signing</li>
+        <li>data migration or any irreversible write</li>
+        <li>regulated or customer-trust-facing claims</li>
+        <li>large multi-stage feature with ambiguous ordering</li>
+        <li>broad repo blast radius</li>
+        <li>you simply want multi-agent staged review before code touches the repo</li>
+      </ul>
+      <h4>What it doesn't do</h4>
+      <ul class="tight">
+        <li>Doesn't execute. The terminal stage emits a playbook; plan-orchestrator runs it.</li>
+        <li>Doesn't replace plan-orchestrator. They handle different stages of the same pipeline.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="insight"><strong>For your Health Data Hub:</strong> probably <em>not needed</em>. Personal-use, no compliance gates, small scope. Skip SWR; use the fast lane (compiler). Save SWR for the day you do the Commercial Autonomy Layer (which involves money, customers, and durable state).</div>
+</div>
+
+<h2 id="contract">4. The contract that holds it together</h2>
+<p>Everything in between humans and the executor passes through one file format: <code>markdown_playbook_v1</code>.</p>
+
+<div class="card">
+  <h3 style="margin-top: 0;">What a <code>markdown_playbook_v1</code> looks like</h3>
+  <pre><code>&lt;!--
+playbook_contract: markdown_playbook_v1
+compiled_by: gstack_to_markdown_playbook_v1
+compiled_at: 2026-05-15T21:10:47+00:00
+human_approved_by: Aysajan
+source_artifacts:
+  - kind: office_hours, path: docs/gstack/health-data-hub-office-hours.md, sha256: ...
+--&gt;
+
+## 1. Plan Context
+(what this playbook is for, in human terms)
+
+## 2. Ordered Execution Plan
+| step_id | phase | action | why_now | owner_type | prerequisites |
+| repo_surfaces | deliverable | exit_criteria | allowed_write_roots |
+| requires_red_green | manual_gate | external_check |
+| required_verification_commands | required_verification_artifacts | notes |
+| 01 | ingestion | Set up DuckDB schema for sleep data | foundation | operator | none |
+|    | `src/db/schema.sql` | `src/db/schema.sql` | Schema lints | src/db | false |
+|    | none | none | `python -m pytest tests/db/test_schema.py` |
+|    | `src/db/schema.sql` | initial schema |
+| 02 | … |
+
+## 3. Phase Details
+(per-phase background — attached to items by phase slug)
+
+## 4. Shared Guidance
+(applies to all items)
+
+## 5. Risks And Contingencies
+
+## 6. Immediate Next Actions
+</code></pre>
+</div>
+
+<h4>The 11 required columns (what you must author)</h4>
+<table class="compare">
+  <tr><th>Column</th><th>What it means</th></tr>
+  <tr><td><code>step_id</code></td><td>Zero-padded ID like <code>01</code>, <code>02</code>. Stable across runs.</td></tr>
+  <tr><td><code>phase</code></td><td>Human-readable phase name like <code>ingestion</code> or <code>ui</code>.</td></tr>
+  <tr><td><code>action</code></td><td>What to do, one sentence.</td></tr>
+  <tr><td><code>why_now</code></td><td>Why this item, this moment. Forces ordering discipline.</td></tr>
+  <tr><td><code>owner_type</code></td><td>Who runs it. Usually <code>operator</code>.</td></tr>
+  <tr><td><code>prerequisites</code></td><td><code>none</code>, list of step_ids, or range like <code>01-03</code>.</td></tr>
+  <tr><td><code>repo_surfaces</code></td><td>Concrete repo-relative input files (what the item <em>reads</em>).</td></tr>
+  <tr><td><code>deliverable</code></td><td>Concrete repo-relative output files (what the item <em>writes</em>).</td></tr>
+  <tr><td><code>exit_criteria</code></td><td>Human-readable "done" condition.</td></tr>
+  <tr><td><code>allowed_write_roots</code></td><td>Narrow directories the item may modify. <strong>The load-bearing safety field.</strong></td></tr>
+  <tr><td><code>requires_red_green</code></td><td>Boolean: does this item need a failing-then-passing verification command?</td></tr>
+</table>
+
+<div class="warn"><strong>Three columns you must NOT author:</strong> <code>change_profile</code>, <code>execution_mode</code>, <code>host_commands</code>. These are <em>derived</em> by plan-orchestrator at normalization time. If you populate them, normalization fails.</div>
+
+<h2 id="two-paths">5. Two paths through the engine</h2>
+
+<div class="grid-2">
+  <div class="card" style="border-top: 4px solid var(--compiler);">
+    <h3 style="color: var(--compiler); margin-top: 0;">⚡ Fast lane scaffold</h3>
+    <p>Use this for low-risk planning only after treating compiler output as a scaffold that needs human review.</p>
+    <pre><code>1. /office-hours (gstack)
+   → design doc
+
+2. /autoplan (gstack)
+   → reviewed plan
+
+3. compiler
+   → markdown_playbook_v1 scaffold
+   → PO list-items + doctor verification
+
+4. human review
+   → accept, revise, or discard scaffold
+
+5. plan-orchestrator
+   → completed branch
+
+6. /ship + /land-and-deploy (gstack)
+   → live in production</code></pre>
+    <p class="footnote">The deterministic compiler author is scaffold-only. Non-dry-run stub output is blocked unless the operator explicitly passes <code>--allow-stub-output</code>; real LLM authors are reserved for future implementation.</p>
+  </div>
+  <div class="card" style="border-top: 4px solid var(--swr);">
+    <h3 style="color: var(--swr); margin-top: 0;">🛡 High-stakes lane</h3>
+    <p>Use this when the human owner judges the stakes high: security, money, irreversible writes, compliance, or customer-facing claims.</p>
+    <pre><code>1. /office-hours (gstack)
+   → design doc
+
+2. /autoplan (gstack)
+   → reviewed plan
+   → approved build brief
+
+3. SWR gstack_design_to_po_playbook pack
+   → staged, reviewed markdown_playbook_v1 draft
+   → PO list-items + doctor verification
+
+4. human review
+   → accept, revise, or discard playbook
+
+5. plan-orchestrator
+   → completed branch
+
+6. /ship + /land-and-deploy (gstack)</code></pre>
+    <p class="footnote">Slower and more expensive. Worth it when the cost of a bad plan is higher than the cost of a careful review process.</p>
+  </div>
+</div>
+
+<div class="insight">
+  <strong>Both lanes target the same contract, not the same trust level.</strong> plan-orchestrator only executes a file that validates as <code>markdown_playbook_v1</code>, and the compiler now runs PO <code>list-items</code> plus <code>doctor</code> when a PO root is known. Human review remains mandatory before execution.
+</div>
+
+<h2 id="walkthrough">6. Walkthrough: Health Data Hub, end-to-end</h2>
+<p>Concrete example using your actual approved design doc at <code>~/.gstack/projects/AysajanE-longevity-analytics/aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md</code>. Click each phase to expand commands and artifacts.</p>
+
+<details class="phase" data-owner="gstack">
+  <summary><span class="pill pill-gstack">phase 0</span> Idea → design doc</summary>
+  <div class="phase-body">
+    <p class="step-label">In Claude Code, you typed:</p>
+    <pre><code>/office-hours</code></pre>
+    <p>You said: <em>"I want to build a personal multi-device health analytics tool that aggregates my Oura, 8 Sleep, and mood log data."</em></p>
+    <p>Six rounds of forcing questions later, you had a design doc:</p>
+    <pre><code>~/.gstack/projects/AysajanE-longevity-analytics/
+  aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md</code></pre>
+    <p>Status: APPROVED, locked 2026-05-15, quality 8.5/10 after 6 iterations including 3 external expert reviews.</p>
+    <p class="step-label">Human gate at the end of this phase:</p>
+    <ul class="tight"><li>You confirm the design doc reflects what you actually want to build.</li></ul>
+  </div>
+</details>
+
+<details class="phase" data-owner="gstack">
+  <summary><span class="pill pill-gstack">phase 1</span> Design → reviewed plan → approved brief</summary>
+  <div class="phase-body">
+    <p class="step-label">Promote the design doc into the target repo, then review it:</p>
+    <pre><code># Copy the gstack design doc into the longevity-analytics repo
+cp ~/.gstack/projects/AysajanE-longevity-analytics/aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md \
+   ~/conductor/workspaces/longevity-analytics/luxembourg/docs/gstack/health-data-hub-office-hours.md
+
+# In Claude Code, run the review gauntlet
+/autoplan docs/gstack/health-data-hub-office-hours.md</code></pre>
+    <p>This walks through CEO review → design review → eng review → DX review, with you making decisions at each step. Output:</p>
+    <pre><code>docs/gstack/health-data-hub-autoplan.md
+docs/briefs/health-data-hub.approved-brief.md</code></pre>
+    <p class="step-label">Human gate at the end of this phase:</p>
+    <ul class="tight"><li>You confirm the approved build brief is what you want to execute.</li></ul>
+  </div>
+</details>
+
+<details class="phase" data-owner="compiler">
+  <summary><span class="pill pill-compiler">phase 2A</span> Brief → playbook scaffold (fast lane)</summary>
+  <div class="phase-body">
+    <p class="step-label">Run the compiler (uses the <code>keel-compile</code> wrapper from <code>~/keel/bin/</code>):</p>
+    <pre><code>source ~/keel/keel.env
+export PRODUCT_REPO=~/conductor/workspaces/longevity-analytics/luxembourg
+
+keel-compile compile \
+  --repo-root "$PRODUCT_REPO" \
+  --design   "$PRODUCT_REPO/docs/gstack/health-data-hub-office-hours.md" \
+  --autoplan "$PRODUCT_REPO/docs/gstack/health-data-hub-autoplan.md" \
+  --approved-brief "$PRODUCT_REPO/docs/briefs/health-data-hub.approved-brief.md" \
+  --out      "$PRODUCT_REPO/docs/playbooks/health-data-hub.playbook.md" \
+  --plan-orchestrator-root "$KEEL_PO_ROOT" \
+  --human-approved-by "Aysajan" \
+  --dry-run</code></pre>
+    <p>Current alpha behavior is intentionally conservative: the deterministic row author is scaffold-only. To write stub output anyway, an operator must pass <code>--allow-stub-output</code>, and the compiler forces generated rows through signoff gates.</p>
+    <p>Outputs three artifacts:</p>
+    <pre><code>docs/playbooks/health-data-hub.playbook.md          (candidate playbook scaffold)
+docs/playbooks/health-data-hub.playbook.meta.json   (compiler provenance)
+docs/playbooks/health-data-hub.validation.json      (validation report)</code></pre>
+    <p>The compiler performs the PO contract check when <code>--plan-orchestrator-root</code> is supplied. If the PO root is intentionally unavailable, the operator must pass <code>--skip-po-verify "&lt;reason&gt;"</code> and record why the contract check was deferred.</p>
+    <p class="step-label">Human gate at the end of this phase:</p>
+    <ul class="tight"><li>You read the playbook end-to-end and confirm it's what you want plan-orchestrator to execute.</li><li>Validation status is <code>pass</code> and PO contract verification passed or has a recorded skip reason.</li></ul>
+  </div>
+</details>
+
+<details class="phase" data-owner="swr">
+  <summary><span class="pill pill-swr">phase 2B</span> Brief → playbook (high-stakes lane, optional)</summary>
+  <div class="phase-body">
+    <p>For Health Data Hub: <strong>skip this.</strong> Personal, no compliance, no irreversible writes. Use the compiler scaffold path, then review before PO execution.</p>
+    <p>If you did need it (e.g., for the Commercial Autonomy Layer one day):</p>
+    <pre><code># 1. Initialize an SWR session (keel-swr supervisor → run_responses_supervisor_v2.py)
+keel-swr supervisor init-session \
+  --root ~/conductor/workspaces/&lt;workspace&gt; \
+  --clarified-task-brief docs/briefs/&lt;slug&gt;.approved-brief.md \
+  --summary "Emit a reviewed markdown_playbook_v1 for &lt;slug&gt; v1."
+
+# 2. Stage + examine + dry-run the playbook-emission scaffold
+# 3. Run the 5 staged calls (each with multi-agent review between)
+# 4. Promote terminal artifact
+cp &lt;SWR_RUN_DIR&gt;/stages/05_final_markdown_playbook/response.final.md \
+   docs/playbooks/&lt;slug&gt;.playbook.md
+
+# 5. Validate with keel-run list-items + keel-doctor --playbook (same as the fast lane)</code></pre>
+  </div>
+</details>
+
+<details class="phase" data-owner="po">
+  <summary><span class="pill pill-po">phase 3</span> Playbook → executed code, one item at a time</summary>
+  <div class="phase-body">
+    <p class="step-label">Run plan-orchestrator under supervision (uses <code>keel-run</code>):</p>
+    <pre><code>source ~/keel/keel.env
+cd ~/conductor/workspaces/longevity-analytics/luxembourg
+
+# Acknowledge any ambient agent configs once after reviewing them
+export PLAN_ORCHESTRATOR_CLEAN_ENV_CONFIRMED=1
+
+keel-run supervise run \
+  --playbook docs/playbooks/health-data-hub.playbook.md \
+  --next</code></pre>
+    <p>For each item, plan-orchestrator:</p>
+    <ol>
+      <li>Creates a fresh git worktree: <code>.local/automation/plan_orchestrator/worktrees/&lt;RUN_ID&gt;/item-01-attempt-1/</code></li>
+      <li>Executes the item (Codex implements the action)</li>
+      <li>Runs the verification command(s) inside the worktree</li>
+      <li>Freezes an audit packet (patch + verification report + snapshots)</li>
+      <li>Asks Codex to audit the frozen packet</li>
+      <li>Asks Claude to audit the same frozen packet</li>
+      <li>Deterministically merges findings, hashing duplicates</li>
+      <li>Triages: passed / awaiting_human_gate / blocked_external / escalated</li>
+    </ol>
+    <p>If the item lands <code>passed</code>, plan-orchestrator fast-forwards the run branch <code>orchestrator/run/&lt;RUN_ID&gt;</code> and moves to the next item.</p>
+    <p>You can watch live:</p>
+    <pre><code>keel-run supervise status --run-id &lt;RUN_ID&gt; --format json --exit-code</code></pre>
+  </div>
+</details>
+
+<details class="phase" data-owner="human">
+  <summary><span class="pill pill-human">phase 4</span> Manual gates — you, in a human-held terminal</summary>
+  <div class="phase-body">
+    <p>When plan-orchestrator reaches <code>awaiting_human_gate</code>, it stops. You read:</p>
+    <ul class="tight">
+      <li><code>manual_gate.json</code></li>
+      <li>candidate patch</li>
+      <li>verification report</li>
+      <li>Codex audit report</li>
+      <li>Claude audit report</li>
+      <li>triage report</li>
+    </ul>
+    <p>Then in <strong>your own terminal</strong> (no agent), you record the decision:</p>
+    <pre><code>keel-run mark-manual-gate \
+  --run-id &lt;RUN_ID&gt; \
+  --item 02 \
+  --decision approved \
+  --by "Aysajan" \
+  --note "Reviewed the gate packet and approve continuation." \
+  --evidence-path docs/reviews/health-data-hub-02-signoff.md \
+  --approval-token-file /secure/local/path/manual-gate-token.txt</code></pre>
+    <p>Then resume:</p>
+    <pre><code>keel-run supervise resume --run-id &lt;RUN_ID&gt;</code></pre>
+    <div class="warn"><strong>Critical rule:</strong> no agent, no wrapper, no skill, no compiler ever calls <code>mark-manual-gate</code>. You do. This is the single unbreakable boundary of the system.</div>
+  </div>
+</details>
+
+<details class="phase" data-owner="human">
+  <summary><span class="pill pill-human">phase 5</span> External evidence — when the item needs proof from outside the repo</summary>
+  <div class="phase-body">
+    <p>Some items need evidence plan-orchestrator can't fetch on its own (e.g., "verified the Oura webhook works for my actual account"). When it reaches <code>blocked_external</code>, you supply local evidence:</p>
+    <pre><code># Put proof files in a local directory
+mkdir -p /tmp/oura-evidence
+# (drop screenshots, logs, etc.)
+
+python .../run_plan_orchestrator.py supervise resume \
+  --run-id &lt;RUN_ID&gt; \
+  --external-evidence-dir /tmp/oura-evidence</code></pre>
+    <p>plan-orchestrator copies the directory into the item's evidence folder and resumes.</p>
+    <div class="warn"><strong>External evidence is local-file only.</strong> No agent fabricates it, no script downloads it. You hand it over physically.</div>
+  </div>
+</details>
+
+<details class="phase" data-owner="gstack">
+  <summary><span class="pill pill-gstack">phase 6</span> Passed branch → PR → deploy → retrospective</summary>
+  <div class="phase-body">
+    <p>When all items reach <code>passed</code>, plan-orchestrator's work is done. The completed code lives on branch <code>orchestrator/run/&lt;RUN_ID&gt;</code>.</p>
+    <p class="step-label">Hand off to gstack — but never directly:</p>
+    <pre><code># 1. Create a normal ship branch from the orchestrator run branch
+git fetch origin
+git checkout -b ship/health-data-hub orchestrator/run/&lt;RUN_ID&gt;
+
+# 2. Let gstack prepare the PR (tests, review, version bump, CHANGELOG)
+/ship
+
+# 3. Let gstack merge and deploy after the PR exists
+/land-and-deploy
+
+# 4. (For web apps) post-deploy monitoring
+/canary
+
+# 5. Documentation sync
+/document-release
+
+# 6. Capture learnings
+/retro
+/learn</code></pre>
+    <div class="insight"><strong>Why a separate ship branch?</strong> <code>orchestrator/run/&lt;RUN_ID&gt;</code> is internal kernel state. gstack <code>/ship</code> is a release workflow that does its own merging, version bumping, and PR opening. Keeping them separate means you never confuse "the executor's working state" with "the thing we're proposing to ship."</div>
+  </div>
+</details>
+
+<h2 id="after-po">7. What happens after plan-orchestrator finishes</h2>
+<p>plan-orchestrator's last act is to report one of four terminal states. The next move is yours — but the playbook tells you what to do.</p>
+
+<div class="grid-2">
+  <div class="card" style="border-left: 4px solid #2A9D8F;">
+    <h3 style="color: #2A9D8F; margin-top: 0;">✓ passed</h3>
+    <p>All items completed cleanly. <code>orchestrator/run/&lt;RUN_ID&gt;</code> is fast-forwarded with the work.</p>
+    <p><strong>Next:</strong> <code>git checkout -b ship/&lt;slug&gt; orchestrator/run/&lt;RUN_ID&gt;</code>, then gstack <code>/ship</code>.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid var(--human);">
+    <h3 style="color: var(--human); margin-top: 0;">⏸ awaiting_human_gate</h3>
+    <p>An item declared <code>manual_gate</code> and is waiting for your signoff.</p>
+    <p><strong>Next:</strong> read the gate packet, then <code>mark-manual-gate</code> from your terminal, then <code>supervise resume</code>.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid var(--human);">
+    <h3 style="color: var(--human); margin-top: 0;">⏸ blocked_external</h3>
+    <p>An item needs evidence that lives outside the repo.</p>
+    <p><strong>Next:</strong> assemble the evidence directory, then <code>supervise resume --external-evidence-dir</code>.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid #B97824;">
+    <h3 style="color: #B97824; margin-top: 0;">⚠ escalated</h3>
+    <p>Critical unresolved issue, infrastructure failure, or rejected manual gate. No automatic recovery path.</p>
+    <p><strong>Next:</strong> read the audit reports and triage report, decide whether to revise the playbook, fix manually, or abandon the run.</p>
+  </div>
+</div>
+
+<div class="insight"><strong>The system is designed so "stop and ask" is always available.</strong> No matter where plan-orchestrator ends up, you can <code>status</code>, <code>doctor</code>, or inspect the worktree manually. Nothing is ever silently abandoned.</div>
+
+<h2 id="decision">8. "Which tool should I use?" decision guide</h2>
+
+<div class="decision">
+  <p class="q">Q: I have an idea. Where do I start?</p>
+  <div class="branch">
+    <span class="a a-yes">→ gstack <code>/office-hours</code></span>
+    <p>Always. Even for tiny features. The forcing questions surface what you don't know yet.</p>
+  </div>
+
+  <p class="q" style="margin-top: 20px;">Q: I have an approved design. How do I get a playbook?</p>
+  <div class="branch">
+    <p class="q" style="font-size: 14.5px;">Is the work high-stakes (security, money, irreversible state, broad blast radius)?</p>
+    <div class="branch">
+      <span class="a a-no">No (most cases)</span> → <strong>compiler</strong> (this repo). Fast, deterministic.
+    </div>
+    <div class="branch">
+      <span class="a a-yes">Yes</span> → <strong>SWR</strong>. Five staged calls, multi-agent reviewed between each.
+    </div>
+  </div>
+
+  <p class="q" style="margin-top: 20px;">Q: My playbook is ready. How do I execute it?</p>
+  <div class="branch">
+    <span class="a a-yes">→ plan-orchestrator <code>supervise run --next</code></span>
+    <p>Always. The compiler and SWR never execute. plan-orchestrator is the only executor.</p>
+  </div>
+
+  <p class="q" style="margin-top: 20px;">Q: plan-orchestrator stopped at <code>awaiting_human_gate</code>. What now?</p>
+  <div class="branch">
+    <p>Open a fresh terminal that no agent controls. Read the gate packet. If you approve:</p>
+    <pre style="margin: 8px 0;"><code>mark-manual-gate --decision approved --by "&lt;you&gt;" ... --approval-token-file ...
+supervise resume --run-id &lt;RUN_ID&gt;</code></pre>
+  </div>
+
+  <p class="q" style="margin-top: 20px;">Q: plan-orchestrator finished with <code>passed</code>. How do I ship?</p>
+  <div class="branch">
+    <span class="a a-yes">→ <code>git checkout -b ship/&lt;slug&gt; orchestrator/run/&lt;RUN_ID&gt;</code></span>
+    <span class="a a-yes">→ gstack <code>/ship</code></span>
+    <span class="a a-yes">→ gstack <code>/land-and-deploy</code></span>
+    <p>Always create a sibling ship branch. <code>/ship</code> never operates directly on the kernel's run branch.</p>
+  </div>
+</div>
+
+<h2 id="boundaries">9. Safety boundaries that must not be crossed</h2>
+<p>The system has carefully separated authorities. Crossing any of these lines breaks the safety properties that make the whole thing trustworthy.</p>
+
+<div class="grid-2">
+  <div class="card">
+    <h3 style="color: var(--human); margin-top: 0;">🚫 No agent approves manual gates</h3>
+    <p>Only you, from a human-held terminal, can call <code>mark-manual-gate</code>. Compilers, supervisors, skills, wrappers — none of them. Optionally protect this further with the env var <code>PLAN_ORCHESTRATOR_MANUAL_GATE_TOKEN_SHA256</code>.</p>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--human); margin-top: 0;">🚫 No fabricated external evidence</h3>
+    <p>When plan-orchestrator says <code>blocked_external</code>, evidence must come from a local directory you physically supply. No agent invents proof.</p>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--human); margin-top: 0;">🚫 No "." or broad write roots</h3>
+    <p><code>allowed_write_roots</code> must be narrow (1–3 entries, repo-relative). Never <code>.</code>, <code>src</code>, <code>tests</code>. Never <code>.local</code>, <code>.git</code>, <code>.codex</code>, <code>.claude</code>, <code>.mcp.json</code>, <code>secrets</code>, <code>.env*</code>, <code>ops/config</code>.</p>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--human); margin-top: 0;">🚫 No skipping verification</h3>
+    <p>Behavioral items (<code>requires_red_green: true</code>) must have at least one <code>required_verification_commands</code> entry that would fail without the change. No exceptions.</p>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--human); margin-top: 0;">🚫 No merging supervisors</h3>
+    <p>plan-orchestrator's supervisor and SWR's supervisor stay separate. Merging them adds failure surface without improving anything.</p>
+  </div>
+  <div class="card">
+    <h3 style="color: var(--human); margin-top: 0;">🚫 No shipping the run branch directly</h3>
+    <p><code>orchestrator/run/&lt;RUN_ID&gt;</code> is internal state. Always create a sibling <code>ship/&lt;slug&gt;</code> branch and let gstack <code>/ship</code> drive the PR.</p>
+  </div>
+</div>
+
+<h2 id="cheatsheet">10. One-page command cheatsheet</h2>
+<div class="cheat">
+# ───────── Phase 0: Idea capture ─────────
+In Claude Code:    /office-hours
+Artifact:          ~/.gstack/projects/&lt;slug&gt;/&lt;...&gt;-design-&lt;ts&gt;.md
+Human gate:        approve / revise the design doc
+
+# ───────── Phase 1: Plan review ─────────
+Promote design to repo: docs/gstack/&lt;slug&gt;-office-hours.md
+In Claude Code:    /autoplan docs/gstack/&lt;slug&gt;-office-hours.md
+Artifact:          docs/gstack/&lt;slug&gt;-autoplan.md
+                   docs/briefs/&lt;slug&gt;.approved-brief.md
+Human gate:        approve the build brief
+
+# ───────── Phase 2A: Fast lane scaffold ─────────
+source ~/keel/keel.env
+export PRODUCT_REPO=&lt;target-repo&gt;
+
+keel-compile compile \
+  --repo-root "$PRODUCT_REPO" \
+  --design   "$PRODUCT_REPO/docs/gstack/&lt;slug&gt;-office-hours.md" \
+  --autoplan "$PRODUCT_REPO/docs/gstack/&lt;slug&gt;-autoplan.md" \
+  --approved-brief "$PRODUCT_REPO/docs/briefs/&lt;slug&gt;.approved-brief.md" \
+  --out      "$PRODUCT_REPO/docs/playbooks/&lt;slug&gt;.playbook.md" \
+  --plan-orchestrator-root "$KEEL_PO_ROOT" \
+  --human-approved-by "&lt;you&gt;" \
+  --dry-run
+  # current alpha stub output is scaffold-only
+
+Artifacts:         $PRODUCT_REPO/docs/playbooks/&lt;slug&gt;.playbook.md
+                   $PRODUCT_REPO/docs/playbooks/&lt;slug&gt;.playbook.meta.json
+                   $PRODUCT_REPO/docs/playbooks/&lt;slug&gt;.validation.json
+
+# Compiler validates with PO when --plan-orchestrator-root is supplied.
+# Human gate: confirm playbook is the approved execution source.
+
+# ───────── Phase 3: PO execution ─────────
+cd "$PRODUCT_REPO"
+export PLAN_ORCHESTRATOR_CLEAN_ENV_CONFIRMED=1
+keel-run supervise run --playbook docs/playbooks/&lt;slug&gt;.playbook.md --next
+
+# Inspect live
+keel-run supervise status --run-id &lt;RUN_ID&gt; --format json --exit-code
+
+# ───────── Phase 4: Manual gate (human terminal only) ─────────
+keel-run mark-manual-gate \
+  --run-id &lt;RUN_ID&gt; \
+  --item   &lt;ITEM_ID&gt; \
+  --decision approved \
+  --by     "&lt;your name&gt;" \
+  --note   "Reviewed the gate packet and approve continuation." \
+  --evidence-path docs/reviews/&lt;slug&gt;-&lt;item&gt;-signoff.md \
+  --approval-token-file /secure/local/path/manual-gate-token.txt
+
+keel-run supervise resume --run-id &lt;RUN_ID&gt;
+
+# ───────── Phase 5: External evidence ─────────
+keel-run supervise resume \
+  --run-id &lt;RUN_ID&gt; \
+  --external-evidence-dir /absolute/path/to/local/evidence
+
+# ───────── Phase 6: Launch via gstack ─────────
+git fetch origin
+git checkout -b ship/&lt;slug&gt; orchestrator/run/&lt;RUN_ID&gt;
+In Claude Code:    /review
+                   /qa http://localhost:3000
+                   /ship
+                   /land-and-deploy
+                   /canary
+                   /document-release
+                   /retro
+                   /learn
+Final human gate:  product is launch-ready
+
+# ───────── Useful inspections any time ─────────
+python .../run_plan_orchestrator.py list-items  --playbook &lt;playbook&gt;
+python .../run_plan_orchestrator.py show-item   --playbook &lt;playbook&gt; --item 01 --format text
+python .../run_plan_orchestrator.py status      --run-id &lt;RUN_ID&gt; --format json
+python .../run_plan_orchestrator.py doctor      --run-id &lt;RUN_ID&gt; --format json
+</div>
+
+<hr>
+
+<h3>Glossary in one screen</h3>
+<table class="compare">
+<tr><td><strong>cockpit</strong></td><td>Where humans think and decide. gstack at the start, gstack at the end.</td></tr>
+<tr><td><strong>compiler</strong></td><td>Fast deterministic translator from gstack design doc to <code>markdown_playbook_v1</code>.</td></tr>
+<tr><td><strong>contract</strong></td><td>The shared file format. <code>markdown_playbook_v1</code>. The bridge.</td></tr>
+<tr><td><strong>IR</strong></td><td>Intermediate representation. <code>gstack_plan_ir_v1.json</code>. What the parser hands to the LLM row author.</td></tr>
+<tr><td><strong>executor / kernel</strong></td><td>plan-orchestrator. The state machine that runs items.</td></tr>
+<tr><td><strong>supervisor</strong></td><td>The additive layer around either plan-orchestrator (heartbeats) or SWR (review loop). Never authoritative for state.</td></tr>
+<tr><td><strong>worktree</strong></td><td>An isolated git working tree for one item attempt. Where the actual code changes happen.</td></tr>
+<tr><td><strong>audit packet</strong></td><td>A frozen bundle of evidence (patch + verification report + snapshots) given to Codex and Claude simultaneously for independent review.</td></tr>
+<tr><td><strong>terminal state</strong></td><td>One of <code>passed</code>, <code>awaiting_human_gate</code>, <code>blocked_external</code>, <code>escalated</code>. plan-orchestrator stops at every terminal.</td></tr>
+<tr><td><strong>manual gate</strong></td><td>A human-only stop. Only you can resolve it. <code>mark-manual-gate</code> is the kernel's privileged write boundary.</td></tr>
+<tr><td><strong>run branch</strong></td><td><code>orchestrator/run/&lt;RUN_ID&gt;</code>. The internal branch plan-orchestrator fast-forwards as items pass. <em>Never ship directly from here.</em></td></tr>
+<tr><td><strong>ship branch</strong></td><td><code>ship/&lt;slug&gt;</code>. The sibling branch you create from the run branch for gstack <code>/ship</code> to operate on.</td></tr>
+</table>
+
+<p class="footnote" style="margin-top: 40px;">Authoritative design docs lived through three iterations: <code>software_framework_integration.md</code> (the architecture), <code>locked_answers_to_ten_questions.md</code> (the locked decisions), <code>compiler_architecture_recommendation_note.md</code> (the compiler design). This page summarizes all three.</p>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tool = btn.dataset.tool;
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === btn));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tool === tool));
+    });
+  });
+
+  // Big-diagram interactive highlight
+  const diagram = document.getElementById('bigdiagram');
+  let activeTool = null;
+  const boxes = diagram.querySelectorAll('.box[data-tool]');
+  boxes.forEach(b => {
+    b.addEventListener('click', () => {
+      const tool = b.dataset.tool;
+      if (activeTool === tool) {
+        activeTool = null;
+        boxes.forEach(x => x.classList.remove('dim'));
+      } else {
+        activeTool = tool;
+        boxes.forEach(x => {
+          x.classList.toggle('dim', x.dataset.tool !== tool);
+        });
+        // Also switch the deep-dive tab if applicable
+        const tab = document.querySelector('.tab[data-tool="' + tool + '"]');
+        if (tab) tab.click();
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
