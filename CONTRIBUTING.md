@@ -41,6 +41,12 @@ Keel's manifest parser supports only the subset used by
 flat single-line key/value fields. Do not add YAML anchors, nested mappings, or
 block scalars without first replacing or extending the parser.
 
+For `python-editable` tools, `install.sh` creates `tools/<name>/.venv` and the
+matching Keel wrapper must prefer that venv Python when it exists. If a future
+tool needs optional extras for its health check or normal wrapper execution,
+add an explicit manifest field and installer support in the same change; do not
+make undeclared extras an implicit install requirement.
+
 ## Public Docs
 
 Raw local review notes belong in ignored `private/` storage. Public docs should

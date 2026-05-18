@@ -16,9 +16,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Validate release surface
-        run: ./install.sh --check
-      - name: Enforce release-quality manifest
-        run: python3 scripts/manifest.py validate --release-gate
+        run: ./install.sh --check --release-gate
       - name: Create GitHub release
         uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
         with:

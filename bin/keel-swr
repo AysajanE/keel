@@ -144,7 +144,11 @@ for arg in "$@"; do
   prev="$arg"
 done
 
-PY="${KEEL_PYTHON:-python3}"
+if [ -x "$KEEL_SWR_ROOT/.venv/bin/python" ]; then
+  PY="$KEEL_SWR_ROOT/.venv/bin/python"
+else
+  PY="${KEEL_PYTHON:-python3}"
+fi
 if [ -n "$prepend_subcommand" ]; then
   exec "$PY" "$KEEL_SWR_ROOT/automation/$entry" "$prepend_subcommand" "${new_args[@]}"
 else

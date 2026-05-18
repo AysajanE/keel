@@ -57,5 +57,9 @@ for arg in "$@"; do
 done
 
 cd "$KEEL_PO_ROOT"
-PY="${KEEL_PYTHON:-python3}"
+if [ -x "$KEEL_PO_ROOT/.venv/bin/python" ]; then
+  PY="$KEEL_PO_ROOT/.venv/bin/python"
+else
+  PY="${KEEL_PYTHON:-python3}"
+fi
 exec "$PY" "$KEEL_PO_ROOT/automation/run_plan_orchestrator.py" "${new_args[@]}"

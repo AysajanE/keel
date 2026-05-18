@@ -8,10 +8,14 @@ exist.
 ## Reporting A Vulnerability
 
 Do not open a public issue for a vulnerability. Use GitHub private vulnerability
-reporting for `AysajanE/keel` when available. If private vulnerability
-reporting is not enabled, contact the maintainer through the private contact
-method listed on the `AysajanE` GitHub profile and include no sensitive details
-in any public issue.
+reporting for `AysajanE/keel` when available:
+
+```text
+https://github.com/AysajanE/keel/security/advisories/new
+```
+
+If private vulnerability reporting is unavailable, contact the maintainer
+through a private channel and include no sensitive details in any public issue.
 
 Before a stable public release, this file should be updated with a
 maintainer-controlled security email address.

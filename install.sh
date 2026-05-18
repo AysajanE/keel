@@ -10,6 +10,7 @@ public_only=0
 skip_tools=0
 update_tools=0
 check_only=0
+release_gate=0
 
 usage() {
   cat <<'EOF'
@@ -22,6 +23,7 @@ Options:
   --skip-tools        Only write local Keel env/lock files; do not clone tools.
   --update-tools      Fetch and checkout manifest refs for clean existing tools.
   --check             Validate scripts and manifest only; do not write or clone.
+  --release-gate      Enforce release-quality manifest constraints during validation.
   -h, --help          Show this help.
 
 Examples:
@@ -58,6 +60,10 @@ while [ "$#" -gt 0 ]; do
       check_only=1
       shift
       ;;
+    --release-gate)
+      release_gate=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -78,6 +84,12 @@ require_cmd() {
 }
 
 python_version_ok() {
+  local output
+  output="$("$1" --version 2>&1)" || return 1
+  case "$output" in
+    Python\ *) ;;
+    *) return 1 ;;
+  esac
   "$1" - "$2" <<'PY'
 import sys
 
@@ -115,7 +127,11 @@ PYTHON_BIN="$(select_python)"
 
 run_check() {
   require_cmd "$PYTHON_BIN"
-  "$PYTHON_BIN" "$KEEL_ROOT/scripts/manifest.py" --manifest "$MANIFEST" validate
+  local manifest_args=("$KEEL_ROOT/scripts/manifest.py" --manifest "$MANIFEST" validate)
+  if [ "$release_gate" = "1" ]; then
+    manifest_args+=(--release-gate)
+  fi
+  "$PYTHON_BIN" "${manifest_args[@]}"
   "$PYTHON_BIN" "$KEEL_ROOT/scripts/public_hygiene.py"
   bash -n "$KEEL_ROOT"/bin/keel-* "$KEEL_ROOT/install.sh" "$KEEL_ROOT/uninstall.sh"
 }
@@ -192,8 +208,12 @@ clone_or_update_tool() {
 
   install_tool_deps "$name" "$dest" "$install_type"
   if [ -n "$health_check" ]; then
+    local -a health_parts
     echo "keel: health check for $name"
     read -r -a health_parts <<< "$health_check"
+    if [ "${health_parts[0]:-}" = "python3" ] && [ -x "$dest/.venv/bin/python" ]; then
+      health_parts[0]="$dest/.venv/bin/python"
+    fi
     (cd "$dest" && "${health_parts[@]}" >/dev/null)
   fi
 }

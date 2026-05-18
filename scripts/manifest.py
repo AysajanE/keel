@@ -197,7 +197,7 @@ def release_gate_errors(manifest: dict[str, object]) -> list[str]:
 def cmd_validate(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     errors = validate(manifest)
-    if args.release_gate and not errors:
+    if args.release_gate:
         errors.extend(release_gate_errors(manifest))
     if errors:
         for error in errors:

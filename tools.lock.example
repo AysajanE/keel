@@ -1,7 +1,6 @@
 # Example only. install.sh writes a live ignored tools.lock at install time.
 schema: keel_tools_lock_v1
 generated_from: tools.manifest.yaml
-note: Example lock file. install.sh writes a local ignored tools.lock.
 
 tools:
   compiler:
