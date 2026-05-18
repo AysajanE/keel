@@ -131,7 +131,7 @@
     <li><a href="#tools">Each tool, in plain English</a></li>
     <li><a href="#contract">The contract that holds it together</a></li>
     <li><a href="#two-paths">Two paths: fast lane vs. high-stakes lane</a></li>
-    <li><a href="#walkthrough">Walkthrough: Health Data Hub, end-to-end</a></li>
+    <li><a href="#walkthrough">Walkthrough: a feature, end-to-end</a></li>
     <li><a href="#after-po">What happens after plan-orchestrator finishes</a></li>
     <li><a href="#decision">"Which tool should I use?" decision guide</a></li>
     <li><a href="#boundaries">Safety boundaries that must not be crossed</a></li>
@@ -417,7 +417,7 @@ Stage 5: Final playbook emission
       </ul>
     </div>
   </div>
-  <div class="insight"><strong>For your Health Data Hub:</strong> probably <em>not needed</em>. Personal-use, no compliance gates, small scope. Skip SWR; use the fast lane (compiler). Save SWR for the day you do the Commercial Autonomy Layer (which involves money, customers, and durable state).</div>
+  <div class="insight"><strong>For a small internal tool:</strong> SWR is probably <em>not needed</em>. If the scope is personal-use, low-risk, and easy to review, use the fast lane and reserve SWR for workflows involving money, customers, durable state, or broad blast radius.</div>
 </div>
 
 <h2 id="contract">4. The contract that holds it together</h2>
@@ -429,9 +429,9 @@ Stage 5: Final playbook emission
 playbook_contract: markdown_playbook_v1
 compiled_by: gstack_to_markdown_playbook_v1
 compiled_at: 2026-05-15T21:10:47+00:00
-human_approved_by: Aysajan
+human_approved_by: operator
 source_artifacts:
-  - kind: office_hours, path: docs/gstack/health-data-hub-office-hours.md, sha256: ...
+  - kind: office_hours, path: docs/gstack/my-feature-office-hours.md, sha256: ...
 --&gt;
 
 ## 1. Plan Context
@@ -533,19 +533,19 @@ source_artifacts:
   <strong>Both lanes target the same contract, not the same trust level.</strong> plan-orchestrator only executes a file that validates as <code>markdown_playbook_v1</code>, and the compiler now runs PO <code>list-items</code> plus <code>doctor</code> when a PO root is known. Human review remains mandatory before execution.
 </div>
 
-<h2 id="walkthrough">6. Walkthrough: Health Data Hub, end-to-end</h2>
-<p>Concrete example using your actual approved design doc at <code>~/.gstack/projects/AysajanE-longevity-analytics/aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md</code>. Click each phase to expand commands and artifacts.</p>
+<h2 id="walkthrough">6. Walkthrough: a feature, end-to-end</h2>
+<p>Concrete example using a promoted gstack design doc. Click each phase to expand commands and artifacts.</p>
 
 <details class="phase" data-owner="gstack">
   <summary><span class="pill pill-gstack">phase 0</span> Idea → design doc</summary>
   <div class="phase-body">
     <p class="step-label">In Claude Code, you typed:</p>
     <pre><code>/office-hours</code></pre>
-    <p>You said: <em>"I want to build a personal multi-device health analytics tool that aggregates my Oura, 8 Sleep, and mood log data."</em></p>
+    <p>You said: <em>"I want to build a small feature that turns a reviewed product idea into a concrete implementation plan."</em></p>
     <p>Six rounds of forcing questions later, you had a design doc:</p>
-    <pre><code>~/.gstack/projects/AysajanE-longevity-analytics/
-  aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md</code></pre>
-    <p>Status: APPROVED, locked 2026-05-15, quality 8.5/10 after 6 iterations including 3 external expert reviews.</p>
+    <pre><code>~/.gstack/projects/my-product/
+  local-my-product-feature-design-YYYYMMDD-HHMMSS.md</code></pre>
+    <p>Status: approved after human review.</p>
     <p class="step-label">Human gate at the end of this phase:</p>
     <ul class="tight"><li>You confirm the design doc reflects what you actually want to build.</li></ul>
   </div>
@@ -555,15 +555,16 @@ source_artifacts:
   <summary><span class="pill pill-gstack">phase 1</span> Design → reviewed plan → approved brief</summary>
   <div class="phase-body">
     <p class="step-label">Promote the design doc into the target repo, then review it:</p>
-    <pre><code># Copy the gstack design doc into the longevity-analytics repo
-cp ~/.gstack/projects/AysajanE-longevity-analytics/aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md \
-   ~/conductor/workspaces/longevity-analytics/luxembourg/docs/gstack/health-data-hub-office-hours.md
+    <pre><code># Copy the gstack design doc into the product repo
+export PRODUCT_REPO="$HOME/workspaces/my-product"
+cp ~/.gstack/projects/my-product/local-my-product-feature-design-YYYYMMDD-HHMMSS.md \
+   "$PRODUCT_REPO/docs/gstack/my-feature-office-hours.md"
 
 # In Claude Code, run the review gauntlet
-/autoplan docs/gstack/health-data-hub-office-hours.md</code></pre>
+/autoplan docs/gstack/my-feature-office-hours.md</code></pre>
     <p>This walks through CEO review → design review → eng review → DX review, with you making decisions at each step. Output:</p>
-    <pre><code>docs/gstack/health-data-hub-autoplan.md
-docs/briefs/health-data-hub.approved-brief.md</code></pre>
+    <pre><code>docs/gstack/my-feature-autoplan.md
+docs/briefs/my-feature.approved-brief.md</code></pre>
     <p class="step-label">Human gate at the end of this phase:</p>
     <ul class="tight"><li>You confirm the approved build brief is what you want to execute.</li></ul>
   </div>
@@ -573,23 +574,23 @@ docs/briefs/health-data-hub.approved-brief.md</code></pre>
   <summary><span class="pill pill-compiler">phase 2A</span> Brief → playbook scaffold (fast lane)</summary>
   <div class="phase-body">
     <p class="step-label">Run the compiler (uses the <code>keel-compile</code> wrapper from <code>~/keel/bin/</code>):</p>
-    <pre><code>source ~/keel/keel.env
-export PRODUCT_REPO=~/conductor/workspaces/longevity-analytics/luxembourg
+<pre><code>source ~/keel/keel.env
+export PRODUCT_REPO="$HOME/workspaces/my-product"
 
 keel-compile compile \
   --repo-root "$PRODUCT_REPO" \
-  --design   "$PRODUCT_REPO/docs/gstack/health-data-hub-office-hours.md" \
-  --autoplan "$PRODUCT_REPO/docs/gstack/health-data-hub-autoplan.md" \
-  --approved-brief "$PRODUCT_REPO/docs/briefs/health-data-hub.approved-brief.md" \
-  --out      "$PRODUCT_REPO/docs/playbooks/health-data-hub.playbook.md" \
+  --design   "$PRODUCT_REPO/docs/gstack/my-feature-office-hours.md" \
+  --autoplan "$PRODUCT_REPO/docs/gstack/my-feature-autoplan.md" \
+  --approved-brief "$PRODUCT_REPO/docs/briefs/my-feature.approved-brief.md" \
+  --out      "$PRODUCT_REPO/docs/playbooks/my-feature.playbook.md" \
   --plan-orchestrator-root "$KEEL_PO_ROOT" \
-  --human-approved-by "Aysajan" \
+  --human-approved-by "$USER" \
   --dry-run</code></pre>
     <p>Current alpha behavior is intentionally conservative: the deterministic row author is scaffold-only. To write stub output anyway, an operator must pass <code>--allow-stub-output</code>, and the compiler forces generated rows through signoff gates.</p>
     <p>Outputs three artifacts:</p>
-    <pre><code>docs/playbooks/health-data-hub.playbook.md          (candidate playbook scaffold)
-docs/playbooks/health-data-hub.playbook.meta.json   (compiler provenance)
-docs/playbooks/health-data-hub.validation.json      (validation report)</code></pre>
+    <pre><code>docs/playbooks/my-feature.playbook.md          (candidate playbook scaffold)
+docs/playbooks/my-feature.playbook.meta.json   (compiler provenance)
+docs/playbooks/my-feature.validation.json      (validation report)</code></pre>
     <p>The compiler performs the PO contract check when <code>--plan-orchestrator-root</code> is supplied. If the PO root is intentionally unavailable, the operator must pass <code>--skip-po-verify "&lt;reason&gt;"</code> and record why the contract check was deferred.</p>
     <p class="step-label">Human gate at the end of this phase:</p>
     <ul class="tight"><li>You read the playbook end-to-end and confirm it's what you want plan-orchestrator to execute.</li><li>Validation status is <code>pass</code> and PO contract verification passed or has a recorded skip reason.</li></ul>
@@ -599,11 +600,11 @@ docs/playbooks/health-data-hub.validation.json      (validation report)</code></
 <details class="phase" data-owner="swr">
   <summary><span class="pill pill-swr">phase 2B</span> Brief → playbook (high-stakes lane, optional)</summary>
   <div class="phase-body">
-    <p>For Health Data Hub: <strong>skip this.</strong> Personal, no compliance, no irreversible writes. Use the compiler scaffold path, then review before PO execution.</p>
-    <p>If you did need it (e.g., for the Commercial Autonomy Layer one day):</p>
+    <p>For low-risk work, skip this and use the compiler scaffold path, then review before PO execution.</p>
+    <p>If you did need it for a higher-risk feature:</p>
     <pre><code># 1. Initialize an SWR session (keel-swr supervisor → run_responses_supervisor_v2.py)
 keel-swr supervisor init-session \
-  --root ~/conductor/workspaces/&lt;workspace&gt; \
+  --root "$PRODUCT_REPO" \
   --clarified-task-brief docs/briefs/&lt;slug&gt;.approved-brief.md \
   --summary "Emit a reviewed markdown_playbook_v1 for &lt;slug&gt; v1."
 
@@ -621,14 +622,14 @@ cp &lt;SWR_RUN_DIR&gt;/stages/05_final_markdown_playbook/response.final.md \
   <summary><span class="pill pill-po">phase 3</span> Playbook → executed code, one item at a time</summary>
   <div class="phase-body">
     <p class="step-label">Run plan-orchestrator under supervision (uses <code>keel-run</code>):</p>
-    <pre><code>source ~/keel/keel.env
-cd ~/conductor/workspaces/longevity-analytics/luxembourg
+<pre><code>source ~/keel/keel.env
+cd "$PRODUCT_REPO"
 
 # Acknowledge any ambient agent configs once after reviewing them
 export PLAN_ORCHESTRATOR_CLEAN_ENV_CONFIRMED=1
 
 keel-run supervise run \
-  --playbook docs/playbooks/health-data-hub.playbook.md \
+  --playbook docs/playbooks/my-feature.playbook.md \
   --next</code></pre>
     <p>For each item, plan-orchestrator:</p>
     <ol>
@@ -664,9 +665,9 @@ keel-run supervise run \
   --run-id &lt;RUN_ID&gt; \
   --item 02 \
   --decision approved \
-  --by "Aysajan" \
+  --by "$USER" \
   --note "Reviewed the gate packet and approve continuation." \
-  --evidence-path docs/reviews/health-data-hub-02-signoff.md \
+  --evidence-path docs/reviews/my-feature-02-signoff.md \
   --approval-token-file /secure/local/path/manual-gate-token.txt</code></pre>
     <p>Then resume:</p>
     <pre><code>keel-run supervise resume --run-id &lt;RUN_ID&gt;</code></pre>
@@ -697,7 +698,7 @@ python .../run_plan_orchestrator.py supervise resume \
     <p class="step-label">Hand off to gstack — but never directly:</p>
     <pre><code># 1. Create a normal ship branch from the orchestrator run branch
 git fetch origin
-git checkout -b ship/health-data-hub orchestrator/run/&lt;RUN_ID&gt;
+git checkout -b ship/my-feature orchestrator/run/&lt;RUN_ID&gt;
 
 # 2. Let gstack prepare the PR (tests, review, version bump, CHANGELOG)
 /ship

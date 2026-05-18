@@ -158,7 +158,7 @@ Artifact:
 Example from your local state:
 
 ```text
-~/.gstack/projects/AysajanE-longevity-analytics/aeziz-local-AysajanE-health-data-hub-design-20260515-114138.md
+~/.gstack/projects/my-product/local-my-product-feature-design-YYYYMMDD-HHMMSS.md
 ```
 
 Human gate:
@@ -396,7 +396,7 @@ python $KEEL_ROOT/tools/plan-orchestrator/automation/run_plan_orchestrator.py ma
   --run-id <PO_RUN_ID> \
   --item <ITEM_ID> \
   --decision approved \
-  --by "Aysajan" \
+  --by "$USER" \
   --note "Reviewed the gate packet and approve continuation." \
   --evidence-path docs/reviews/x_<ITEM_ID>_signoff.md \
   --approval-token-file /secure/local/path/manual-gate-token.txt

@@ -167,11 +167,11 @@ Each approved playbook should begin with a provenance header:
 ```md
 <!--
 playbook_contract: markdown_playbook_v1
-source_gstack_design: docs/gstack/2026-05-15-health-data-hub-office-hours.md
-source_approved_brief: docs/briefs/health-data-hub.approved-brief.md
+source_gstack_design: docs/gstack/YYYY-MM-DD-my-feature-office-hours.md
+source_approved_brief: docs/briefs/my-feature.approved-brief.md
 compiled_by: gstack_to_markdown_playbook_v1
 compiled_at: 2026-05-15T...
-human_approved_by: Aysajan
+human_approved_by: operator
 -->
 ```
 
@@ -216,7 +216,7 @@ SWR is never automatically forced. The human owner chooses.
 Decision:
 
 ```text
-Owner: Aysajan
+Owner: operator
 Terminal: human-held local terminal only
 Token: human-owned, not available to worker agents or SWR/gstack wrappers
 ```
@@ -264,7 +264,7 @@ python automation/run_plan_orchestrator.py mark-manual-gate \
   --run-id <RUN_ID> \
   --item <ITEM_ID> \
   --decision approved \
-  --by "Aysajan" \
+  --by "$USER" \
   --note "Reviewed the gate packet and approve continuation." \
   --evidence-path docs/reviews/<slug>-<item>-signoff.md \
   --approval-token-file /secure/local/path/manual-gate-token.txt
@@ -623,7 +623,7 @@ residual risk list
 |  2 | SWR pack should be generic: `gstack_design_to_po_playbook`, specialized by inputs.                                             |
 |  3 | Approved playbooks live in `docs/playbooks/`; briefs in `docs/briefs/`; promoted gstack artifacts in `docs/gstack/`.           |
 |  4 | Human owner decides SWR path. Add “SWR suggested” rubric, but no automatic forcing.                                            |
-|  5 | Aysajan owns PO manual-gate token and human-held terminal. No agent gate writes.                                               |
+|  5 | The human operator owns the PO manual-gate token and human-held terminal. No agent gate writes.                                |
 |  6 | Use a release handoff checklist, branch from `orchestrator/run/<RUN_ID>`, then `/ship`, then `/land-and-deploy`.               |
 |  7 | `allowed_write_roots` must be narrow, item-specific, repo-relative, and never runtime/secrets roots.                           |
 |  8 | Behavioral items need red/green commands; docs need artifact/lint checks; security/data/infra need negative or dry-run checks. |

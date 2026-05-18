@@ -38,6 +38,7 @@ local ahead commit in this machine's checkout.
 
 - Repository: `https://github.com/garrytan/gbrain`
 - Status: optional, public, third-party
+- Manifest ref: `3933eb6a7915cb5495b8057b75567e2b1588b5ac`
 - Purpose: local-first memory and retrieval layer for agents
 - Install: `./install.sh --with gbrain`
 

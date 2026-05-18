@@ -63,3 +63,6 @@ keel-compile compile \
 
 The compiler currently has a scaffold/stub lane. Use dry-run mode until a real
 row author is available and explicitly enabled.
+
+Read next: `docs/concepts.md`, then
+`docs/architecture/software_framework_integration.md`.

@@ -11,5 +11,10 @@ set -euo pipefail
 KEEL_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KEEL_ROOT="$(cd "$KEEL_BIN_DIR/.." && pwd)"
 export KEEL_ROOT
+if [ "${1:-}" = "--version" ]; then
+  version="${KEEL_VERSION:-$(git -C "$KEEL_ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)}"
+  echo "keel $version"
+  exit 0
+fi
 PY="${KEEL_PYTHON:-python3}"
 exec "$PY" "$KEEL_ROOT/tools/compiler/automation/run_gstack_compiler.py" "$@"

@@ -35,3 +35,5 @@ public changelog.
   install can succeed without maintainer access.
 - First-party tools should be tagged and the manifest should move from commit
   pins to release tags before the first stable release.
+- The manifest pins should describe one tested integration set; `tools.lock`
+  records local resolved commits, but release refs are not yet tag-based.

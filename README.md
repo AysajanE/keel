@@ -68,6 +68,12 @@ For local development against already-present tool checkouts, run:
 source ~/keel/keel.env
 ```
 
+To exercise the installer without private dependencies, run:
+
+```bash
+./install.sh --public-only
+```
+
 ## Daily Commands
 
 ```bash

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+import re
 from pathlib import Path
 
 
@@ -29,13 +30,11 @@ TEXT_SUFFIXES = {
     ".yaml",
     ".yml",
 }
-BANNED_TEXT = [
-    "Shipyard",
-    "shipyard",
-    "SHIPYARD",
-    "~/shipyard",
-    "/Users/aeziz-local/shipyard",
-    "sy-",
+BANNED_PATTERNS = [
+    (re.compile(r"\bshipyard\b", re.IGNORECASE), "legacy project name"),
+    (re.compile(r"~/shipyard"), "legacy home path"),
+    (re.compile(r"/Users/aeziz-local/shipyard"), "legacy local absolute path"),
+    (re.compile(r"\bsy-(compile|run|doctor|swr|cli)\b"), "legacy wrapper name"),
 ]
 
 
@@ -58,9 +57,9 @@ def main() -> int:
             if rel == Path("scripts/public_hygiene.py"):
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
-            for needle in BANNED_TEXT:
-                if needle in text:
-                    errors.append(f"{rel}: banned legacy string {needle!r}")
+            for pattern, label in BANNED_PATTERNS:
+                if pattern.search(text):
+                    errors.append(f"{rel}: banned legacy reference: {label}")
     if errors:
         for error in errors:
             print(error, file=sys.stderr)

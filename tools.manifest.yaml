@@ -41,7 +41,7 @@ tools:
   - name: gbrain
     role: optional third-party local memory layer
     url: https://github.com/garrytan/gbrain.git
-    ref: 1dadd9ed7161fa109f717c551e168d1d63946f80
+    ref: 3933eb6a7915cb5495b8057b75567e2b1588b5ac
     ref_type: commit
     required: false
     install_type: bun-link

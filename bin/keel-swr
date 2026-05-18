@@ -33,6 +33,12 @@ KEEL_ROOT="$(cd "$KEEL_BIN_DIR/.." && pwd)"
 KEEL_SWR_ROOT="$KEEL_ROOT/tools/staged-workflow-runner"
 export KEEL_ROOT KEEL_SWR_ROOT
 
+if [ "${1:-}" = "--version" ]; then
+  version="${KEEL_VERSION:-$(git -C "$KEEL_ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)}"
+  echo "keel $version"
+  exit 0
+fi
+
 if [ "$#" -lt 1 ]; then
   cat >&2 <<EOF
 usage: keel-swr <mode> [args...]

@@ -32,3 +32,6 @@ should not make gbrain a hard dependency.
 gbrain remains owned by its upstream repository. Keel's responsibility is only
 to declare an optional install path and document how it fits into a local
 workflow.
+
+Operator-specific notes about an opinionated gbrain configuration can live next
+to a local install under ignored `private/` storage.

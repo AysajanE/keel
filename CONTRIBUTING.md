@@ -29,6 +29,18 @@ bash -n bin/keel-* install.sh uninstall.sh
 4. Add an install type and health check.
 5. Document the tool in `docs/tools.md`.
 
+Manifest entries are part of Keel's install-time trust boundary. Tool URLs,
+refs, install types, and health checks must be reviewed as executable behavior:
+`install.sh` clones the declared repository and runs the declared health check
+after installation. Health checks are intentionally restricted to a small
+single-line allowlist in `scripts/manifest.py`; expand that allowlist only with
+the same care as shell-script changes.
+
+Keel's manifest parser supports only the subset used by
+`tools.manifest.yaml`: top-level `key: value` metadata and a `tools:` list of
+flat single-line key/value fields. Do not add YAML anchors, nested mappings, or
+block scalars without first replacing or extending the parser.
+
 ## Public Docs
 
 Raw local review notes belong in ignored `private/` storage. Public docs should
