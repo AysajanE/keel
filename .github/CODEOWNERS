@@ -1,0 +1,20 @@
+# Code owners for Keel.
+#
+# Lines starting with '#' are comments. Order matters — later patterns win.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo.
+*  @AysajanE
+
+# Install-time trust boundary. Manifest changes are executable behavior at
+# install time; require explicit maintainer review.
+/tools.manifest.yaml  @AysajanE
+/install.sh           @AysajanE
+/uninstall.sh         @AysajanE
+/scripts/             @AysajanE
+
+# Daily wrappers — anything here ends up on a user's PATH.
+/bin/                 @AysajanE
+
+# CI and security configuration.
+/.github/             @AysajanE
