@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck disable=SC1007  # 'CDPATH= cd' clears CDPATH for this one invocation; intentional robustness idiom.
 KEEL_ROOT="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 remove_tools=0
 

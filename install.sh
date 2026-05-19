@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck disable=SC1007  # 'CDPATH= cd' clears CDPATH for this one invocation; intentional robustness idiom.
 KEEL_ROOT="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="$KEEL_ROOT/tools.manifest.yaml"
 KEEL_PYTHON_MINIMUM="3.10"
@@ -178,6 +179,7 @@ install_tool_deps() {
         *":$HOME/.bun/bin:"*) ;;
         *)
           echo "keel: ensure ~/.bun/bin is on PATH; for zsh add:" >&2
+          # shellcheck disable=SC2016  # Single-quoted on purpose — printing literal text for the user to paste into their shell config.
           echo '      export PATH="$HOME/.bun/bin:$PATH"' >&2
           ;;
       esac
