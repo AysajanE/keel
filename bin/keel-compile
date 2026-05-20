@@ -17,6 +17,16 @@ if [ "${1:-}" = "--version" ]; then
   echo "keel $version"
   exit 0
 fi
+
+if [ ! -f "$KEEL_COMPILER_ROOT/automation/run_gstack_compiler.py" ]; then
+  {
+    echo "keel-compile: compiler checkout is missing."
+    echo "Run from the Keel root: ./install.sh"
+    echo "Expected: $KEEL_COMPILER_ROOT"
+  } >&2
+  exit 127
+fi
+
 if [ -x "$KEEL_COMPILER_ROOT/.venv/bin/python" ]; then
   PY="$KEEL_COMPILER_ROOT/.venv/bin/python"
 else

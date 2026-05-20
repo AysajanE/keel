@@ -20,3 +20,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install public tools only
         run: ./install.sh --public-only
+      - name: First-time smoke
+        run: |
+          source keel.env
+          keel-smoke

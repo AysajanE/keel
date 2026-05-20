@@ -39,8 +39,8 @@ if [ "${1:-}" = "--version" ]; then
   exit 0
 fi
 
-if [ "$#" -lt 1 ]; then
-  cat >&2 <<EOF
+usage() {
+  cat <<EOF
 usage: keel-swr <mode> [args...]
 modes:
   run             -> run_responses_v2.py run
@@ -50,7 +50,20 @@ modes:
   review-bundle   -> create_review_bundle_v2.py
   eval            -> run_responses_v2_eval.py
 EOF
-  exit 2
+}
+
+if [ "$#" -lt 1 ] || [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  usage
+  exit 0
+fi
+
+if [ ! -f "$KEEL_SWR_ROOT/automation/run_responses_v2.py" ]; then
+  {
+    echo "keel-swr: staged-workflow-runner checkout is missing."
+    echo "Run from the Keel root: ./install.sh"
+    echo "Expected: $KEEL_SWR_ROOT"
+  } >&2
+  exit 127
 fi
 
 mode="$1"

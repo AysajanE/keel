@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# keel-smoke — first-time install and wrapper smoke test.
+#
+# Default mode checks the public Keel shell, required tool checkouts, wrapper
+# help surfaces, and the no-key hello-world compile/list flow. It does not run
+# a plan-orchestrator mutation or submit an OpenAI Responses workflow.
+
+set -euo pipefail
+
+KEEL_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KEEL_ROOT="$(cd "$KEEL_BIN_DIR/.." && pwd)"
+KEEL_COMPILER_ROOT="$KEEL_ROOT/tools/compiler"
+KEEL_PO_ROOT="$KEEL_ROOT/tools/plan-orchestrator"
+KEEL_SWR_ROOT="$KEEL_ROOT/tools/staged-workflow-runner"
+
+strict=0
+shell_only=0
+status=0
+
+usage() {
+  cat <<'EOF'
+usage: keel-smoke [--shell-only] [--strict]
+
+Checks:
+  --shell-only   Validate the Keel repo shell without requiring tools/.
+  --strict       Treat execution-readiness warnings as failures.
+
+Default mode expects ./install.sh to have cloned required tools.
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --shell-only)
+      shell_only=1
+      shift
+      ;;
+    --strict)
+      strict=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "keel-smoke: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+python_bin="${KEEL_PYTHON:-python3}"
+
+ok() {
+  printf 'ok: %s\n' "$1"
+}
+
+fail() {
+  printf 'fail: %s\n' "$1" >&2
+  status=1
+}
+
+warn() {
+  printf 'warn: %s\n' "$1" >&2
+  if [ "$strict" = "1" ]; then
+    status=1
+  fi
+}
+
+check_cmd() {
+  local label="$1"
+  shift
+  if "$@" >/dev/null; then
+    ok "$label"
+  else
+    fail "$label"
+  fi
+}
+
+check_file() {
+  local label="$1"
+  local path="$2"
+  if [ -f "$path" ]; then
+    ok "$label"
+  else
+    fail "$label missing at $path"
+  fi
+}
+
+check_executable() {
+  local label="$1"
+  local path="$2"
+  if [ -x "$path" ]; then
+    ok "$label"
+  else
+    fail "$label missing or not executable at $path"
+  fi
+}
+
+cd "$KEEL_ROOT"
+
+check_cmd "manifest validates" "$python_bin" scripts/manifest.py --manifest tools.manifest.yaml validate
+check_cmd "public hygiene passes" "$python_bin" scripts/public_hygiene.py
+check_cmd "shell syntax passes" bash -n bin/keel-* install.sh uninstall.sh
+
+for wrapper in keel-compile keel-run keel-doctor keel-swr keel-smoke; do
+  check_executable "wrapper bin/$wrapper is executable" "$KEEL_ROOT/bin/$wrapper"
+done
+
+if [ "$shell_only" = "1" ]; then
+  if [ "$status" = "0" ]; then
+    ok "shell-only smoke complete"
+  fi
+  exit "$status"
+fi
+
+check_file "compiler entrypoint" "$KEEL_COMPILER_ROOT/automation/run_gstack_compiler.py"
+check_file "plan-orchestrator entrypoint" "$KEEL_PO_ROOT/automation/run_plan_orchestrator.py"
+check_file "staged-workflow-runner entrypoint" "$KEEL_SWR_ROOT/automation/run_responses_v2.py"
+
+if [ "$status" != "0" ]; then
+  echo "keel-smoke: required tool checkouts are missing; run ./install.sh from $KEEL_ROOT" >&2
+  exit "$status"
+fi
+
+check_cmd "keel-compile help works" "$KEEL_ROOT/bin/keel-compile" --help
+check_cmd "keel-run help works" "$KEEL_ROOT/bin/keel-run" --help
+check_cmd "keel-swr run help works" "$KEEL_ROOT/bin/keel-swr" run --help
+
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/keel-smoke.XXXXXX")"
+trap 'rm -rf "$tmp_dir"' EXIT
+cp -R "$KEEL_ROOT/examples/hello-world" "$tmp_dir/hello-world"
+product_repo="$tmp_dir/hello-world"
+playbook="$product_repo/docs/playbooks/hello.playbook.md"
+
+if "$KEEL_ROOT/bin/keel-compile" compile \
+  --repo-root "$product_repo" \
+  --design "$product_repo/docs/gstack/hello-office-hours.md" \
+  --autoplan "$product_repo/docs/gstack/hello-autoplan.md" \
+  --approved-brief "$product_repo/docs/briefs/hello.approved-brief.md" \
+  --out "$playbook" \
+  --plan-orchestrator-root "$KEEL_PO_ROOT" \
+  --human-approved-by "${USER:-keel-user}" \
+  --dry-run >/dev/null; then
+  ok "hello-world compile dry-run works"
+else
+  fail "hello-world compile dry-run failed"
+fi
+
+check_cmd "compiled playbook normalizes" "$KEEL_ROOT/bin/keel-run" list-items --playbook "$playbook" --format json
+
+if "$KEEL_ROOT/bin/keel-doctor" --playbook "$playbook" --format json >/dev/null; then
+  ok "playbook doctor passes"
+else
+  warn "playbook doctor did not fully pass; install/authenticate Codex CLI and Claude Code before real execution"
+fi
+
+if [ -d "$KEEL_ROOT/tools/gbrain" ]; then
+  if command -v gbrain >/dev/null 2>&1; then
+    ok "optional gbrain command is on PATH"
+  else
+    warn "optional gbrain checkout exists but gbrain is not on PATH"
+  fi
+else
+  ok "optional gbrain is not installed"
+fi
+
+if [ "$status" = "0" ]; then
+  ok "keel smoke complete"
+fi
+exit "$status"

@@ -66,9 +66,20 @@ installable:
 | [`staged-workflow-runner`](https://github.com/AysajanE/staged-workflow-runner) | Public, installable, functional |
 | [`gbrain`](https://github.com/garrytan/gbrain) | Optional, public, third-party |
 
-A fresh `./install.sh` clones all four tools from their public repos. "Alpha"
-refers to the compiler's row author being a scaffold-only stub today, not to
-install reproducibility. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+A fresh `./install.sh` clones the three required tools from their public repos;
+`./install.sh --with gbrain` adds the optional memory layer. "Alpha" refers to
+the compiler's row author being a scaffold-only stub today, not to install
+reproducibility. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+
+## Requirements
+
+- Git and a POSIX shell.
+- Python 3.10 or newer.
+- Codex CLI and Claude Code, installed and authenticated, before real
+  plan-orchestrator execution.
+- Optional: Bun, only if you install the `gbrain` integration.
+- Optional: `OPENAI_API_KEY`, only for live staged-workflow-runner Responses
+  runs. The install and hello-world smoke path do not need API keys.
 
 ## Your first five minutes
 
@@ -76,25 +87,23 @@ The bundled `hello-world` fixture lets you exercise the wrappers without any
 API keys.
 
 ```bash
-# 1. Clone and bootstrap (clones all four tools into tools/)
+# 1. Clone and bootstrap (clones required tools into tools/)
 git clone https://github.com/AysajanE/keel.git ~/keel
 cd ~/keel
 ./install.sh
 source ~/keel/keel.env
 
 # 2. Sanity-check the wrappers
-keel-compile --help
-keel-run --help
-keel-doctor --help
-keel-swr
+keel-smoke
 
 # 3. Inspect the fixture
 cd ~/keel/examples/hello-world
 find docs -maxdepth 3 -type f | sort
 ```
 
-To validate the Keel shell without cloning any tools, run
-`./install.sh --skip-tools` instead. Then open
+To validate only the Keel shell without cloning any tools, run
+`./install.sh --skip-tools`, source `keel.env`, then run
+`keel-smoke --shell-only`. Then open
 [`docs/diagrams/keel-explained.html`](docs/diagrams/keel-explained.html) to walk
 through what each command does and why.
 
@@ -205,7 +214,7 @@ keel-run mark-manual-gate \
 
 ```text
 keel/
-├── bin/                         daily wrappers (keel-compile, keel-run, keel-doctor, keel-swr)
+├── bin/                         daily wrappers (keel-smoke, keel-compile, keel-run, keel-doctor, keel-swr)
 ├── docs/                        public docs, architecture notes, and the HTML explainer
 ├── examples/hello-world/        no-key starter fixture
 ├── scripts/                     manifest validator and public hygiene checks

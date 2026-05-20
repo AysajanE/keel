@@ -34,3 +34,5 @@ jobs:
         run: shellcheck bin/keel-* install.sh uninstall.sh
       - name: Installer check
         run: ./install.sh --check
+      - name: Shell-only smoke
+        run: ./bin/keel-smoke --shell-only

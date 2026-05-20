@@ -1,10 +1,14 @@
 # hello autoplan
 
-## Proposed Phases
+## Implementation Tasks
 
-1. Inspect the repository fixture.
-2. Create or validate a tiny playbook.
-3. Run plan-orchestrator list and doctor checks.
+1. Add the hello-world playbook scaffold.
+   Files: `docs/playbooks/hello.playbook.md`
+   Verify: `python -m compileall .`
+
+2. Validate the generated playbook contract.
+   Files: `docs/playbooks/hello.playbook.md`
+   Verify: `keel-run list-items --playbook docs/playbooks/hello.playbook.md --format json`
 
 ## Out Of Scope
 

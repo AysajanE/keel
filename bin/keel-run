@@ -26,6 +26,15 @@ if [ "${1:-}" = "--version" ]; then
   exit 0
 fi
 
+if [ ! -f "$KEEL_PO_ROOT/automation/run_plan_orchestrator.py" ]; then
+  {
+    echo "keel-run: plan-orchestrator checkout is missing."
+    echo "Run from the Keel root: ./install.sh"
+    echo "Expected: $KEEL_PO_ROOT"
+  } >&2
+  exit 127
+fi
+
 # Simpler rebuild: shift through $@ and resolve --playbook|--external-evidence-dir
 # values to absolute paths if they look like relative file/dir arguments.
 new_args=()

@@ -3,6 +3,15 @@
 Keel installs tools from `tools.manifest.yaml`. The manifest is the source of
 truth for URL, ref, install type, required/optional status, and health check.
 
+## Keel wrappers
+
+- `keel-smoke` checks the first-time install surface and a no-key
+  hello-world compile/list flow.
+- `keel-compile` invokes the gstack-to-playbook compiler.
+- `keel-run` invokes plan-orchestrator.
+- `keel-doctor` is a shortcut for plan-orchestrator diagnostics.
+- `keel-swr` invokes staged-workflow-runner modes.
+
 ## compiler
 
 - Repository: `https://github.com/AysajanE/gstack-playbook-compiler`

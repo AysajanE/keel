@@ -1,20 +1,29 @@
 # Quickstart
 
-This path validates the Keel shell without requiring API keys.
+This path validates a fresh Keel checkout without requiring API keys. It clones
+the required public tools, checks the wrappers, and compiles the bundled
+hello-world fixture in dry-run mode.
 
 ## 1. Clone And Bootstrap
 
 ```bash
 git clone https://github.com/AysajanE/keel.git ~/keel
 cd ~/keel
-./install.sh --skip-tools
+./install.sh
 source ~/keel/keel.env
 ```
 
-`--skip-tools` writes only the local env and lock files without cloning any
-tools. It is useful for validating the Keel shell quickly, or when you already
-have local tool checkouts under `tools/`. For a full install that clones every
-tool, run `./install.sh` with no flags.
+`./install.sh` clones the required public tools into `tools/`, installs Python
+tool dependencies in local virtual environments, writes `keel.env`, and records
+the resolved commits in `tools.lock`.
+
+If you only want to validate the Keel repo shell without cloning tools, run:
+
+```bash
+./install.sh --skip-tools
+source ~/keel/keel.env
+keel-smoke --shell-only
+```
 
 If you move or rename the Keel checkout after bootstrapping, rerun
 `./install.sh` from the new root. Python virtual environments and editable
@@ -22,7 +31,22 @@ installs record absolute paths, so the generated environment and tool venvs
 must be refreshed after a move. Use `--update-tools` only when you also want
 clean tool checkouts moved back to the manifest refs.
 
-## 2. Inspect The Example Fixture
+## 2. Run The First-Time Smoke Check
+
+```bash
+keel-smoke
+```
+
+The smoke check verifies the manifest, public hygiene, wrapper syntax, required
+tool checkouts, wrapper help surfaces, and a temporary hello-world compile/list
+flow. It does not run a plan-orchestrator mutation or submit an OpenAI Responses
+workflow.
+
+If `keel-smoke` warns that Codex CLI or Claude Code is missing, install and
+authenticate those before real plan-orchestrator execution. The no-key compile
+and list checks can still pass without OpenAI API keys.
+
+## 3. Inspect The Example Fixture
 
 ```bash
 cd ~/keel/examples/hello-world
@@ -35,21 +59,6 @@ The fixture contains:
 - a small autoplan artifact
 - an approved brief
 - an empty playbook output directory
-
-## 3. Verify The Wrappers
-
-From the Keel root:
-
-```bash
-keel-compile --help
-keel-run --help
-keel-doctor --help
-keel-swr
-```
-
-If the tool checkouts are absent, commands that invoke those tools will fail
-with missing-file errors. That is expected until `./install.sh` has populated
-`tools/`.
 
 ## 4. First Real Compile
 
