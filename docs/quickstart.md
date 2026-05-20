@@ -11,8 +11,10 @@ cd ~/keel
 source ~/keel/keel.env
 ```
 
-`--skip-tools` is useful while the compiler repository is still private or when
-you already have local tool checkouts under `tools/`.
+`--skip-tools` writes only the local env and lock files without cloning any
+tools. It is useful for validating the Keel shell quickly, or when you already
+have local tool checkouts under `tools/`. For a full install that clones every
+tool, run `./install.sh` with no flags.
 
 If you move or rename the Keel checkout after bootstrapping, rerun
 `./install.sh` from the new root. Python virtual environments and editable

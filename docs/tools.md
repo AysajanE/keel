@@ -6,12 +6,15 @@ truth for URL, ref, install type, required/optional status, and health check.
 ## compiler
 
 - Repository: `https://github.com/AysajanE/gstack-playbook-compiler`
-- Status: required, currently private
+- Status: required, public, installable
+- Manifest ref: `v0.1.0` (release tag)
 - Purpose: converts reviewed gstack artifacts into `markdown_playbook_v1`
 - Wrapper: `keel-compile`
 
-This is the main public-release blocker. A fresh public install cannot complete
-until this repository is public or replaced by a public release artifact.
+The compiler is the fast lane. It runs a four-stage pipeline (parse, author,
+validate, emit) and a plan-orchestrator contract post-check. Its row author is
+a scaffold-only stub in `v0.1.0`; real LLM authors are reserved for future
+releases.
 
 ## plan-orchestrator
 

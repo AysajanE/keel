@@ -56,29 +56,30 @@ audits, and human-only gates that no wrapper can bypass.
 
 ## Status
 
-Alpha, but the end-to-end pipeline works today against local installs:
+Alpha, but the end-to-end pipeline works today and every tool is public and
+installable:
 
 | Tool | Status |
 |------|--------|
+| [`gstack-playbook-compiler`](https://github.com/AysajanE/gstack-playbook-compiler) | Public, installable, tagged `v0.1.0` |
 | [`plan-orchestrator`](https://github.com/AysajanE/plan-orchestrator) | Public, installable, functional |
 | [`staged-workflow-runner`](https://github.com/AysajanE/staged-workflow-runner) | Public, installable, functional |
-| `gstack-playbook-compiler` | Currently private — blocks fully reproducible public installs |
 | [`gbrain`](https://github.com/garrytan/gbrain) | Optional, public, third-party |
 
-A fresh public install will be fully reproducible once the compiler repo goes
-public. Until then, treat Keel as a working local setup, not a turnkey
-distribution. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+A fresh `./install.sh` clones all four tools from their public repos. "Alpha"
+refers to the compiler's row author being a scaffold-only stub today, not to
+install reproducibility. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
 
 ## Your first five minutes
 
 The bundled `hello-world` fixture lets you exercise the wrappers without any
-API keys or private repos.
+API keys.
 
 ```bash
-# 1. Clone and bootstrap (works without the private compiler)
+# 1. Clone and bootstrap (clones all four tools into tools/)
 git clone https://github.com/AysajanE/keel.git ~/keel
 cd ~/keel
-./install.sh --public-only --skip-tools
+./install.sh
 source ~/keel/keel.env
 
 # 2. Sanity-check the wrappers
@@ -92,8 +93,8 @@ cd ~/keel/examples/hello-world
 find docs -maxdepth 3 -type f | sort
 ```
 
-When you have access to the compiler tool checkout, run `./install.sh` to clone
-it and the other tools into `tools/`. Then open
+To validate the Keel shell without cloning any tools, run
+`./install.sh --skip-tools` instead. Then open
 [`docs/diagrams/keel-explained.html`](docs/diagrams/keel-explained.html) to walk
 through what each command does and why.
 
@@ -144,8 +145,8 @@ Optional gbrain integration:
 ```
 
 For local development against an existing checkout of the tools, run
-`./install.sh --skip-tools`. To exercise the installer without the private
-compiler, run `./install.sh --public-only`.
+`./install.sh --skip-tools`. To install only the public tools (skipping any
+tool a future manifest marks private), run `./install.sh --public-only`.
 
 ## Daily commands
 

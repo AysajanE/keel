@@ -24,6 +24,11 @@ public changelog.
 
 ### Changed
 
+- Published `AysajanE/gstack-playbook-compiler` as a public repository tagged
+  `v0.1.0`. The compiler manifest entry is now `visibility: public`,
+  `public_status: installable`, and pinned to the `v0.1.0` release tag instead
+  of a commit SHA. A fresh `./install.sh` now clones all four tools from
+  public repositories with no maintainer access required.
 - Renamed the public project identity to Keel.
 - Removed old wrapper names and old environment variables.
 - Moved raw local review artifacts under ignored `private/` storage.
@@ -33,11 +38,12 @@ public changelog.
 - Documented that tool virtual environments must be refreshed after moving the
   Keel checkout.
 
-### Known Blockers
+### Remaining Before A Stable Release
 
-- `AysajanE/gstack-playbook-compiler` must be public before a fresh public
-  install can succeed without maintainer access.
-- First-party tools should be tagged and the manifest should move from commit
-  pins to release tags before the first stable release.
+- `plan-orchestrator` and `staged-workflow-runner` are still commit-pinned;
+  they should be tagged so the manifest can move them from commit SHAs to
+  release tags. The compiler already pins to `v0.1.0`.
+- Once every first-party tool is tag-pinned, `./install.sh --release-gate`
+  should pass cleanly and become a CI gate.
 - The manifest pins should describe one tested integration set; `tools.lock`
-  records local resolved commits, but release refs are not yet tag-based.
+  records local resolved commits for reproducibility.
