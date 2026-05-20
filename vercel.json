@@ -1,9 +1,3 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/docs/diagrams/keel-explained.html"
-    }
-  ]
+  "cleanUrls": true
 }

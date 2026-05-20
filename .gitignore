@@ -34,3 +34,4 @@ build/
 .vscode/
 *.swp
 .gstack/
+.vercel
