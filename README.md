@@ -182,9 +182,10 @@ keel-compile compile \
 ```
 
 Model-backed row authors are JSON-only planning calls. They run isolated from
-the product repo cwd by default and must not implement code. Use `--dry-run`
-instead when you only want deterministic scaffold output. The three input files
-are gstack outputs from `/office-hours` and `/autoplan`. See the
+the product repo cwd by default, with obvious repo/path/secret environment
+variables removed, and must not implement code. Use `--dry-run` instead when
+you only want deterministic scaffold output. The three input files are gstack
+outputs from `/office-hours` and `/autoplan`. See the
 [explainer](docs/diagrams/keel-explained.html) for the full lifecycle.
 
 **Validate a playbook before running it:**

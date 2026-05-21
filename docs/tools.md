@@ -25,7 +25,15 @@ validate, emit) and a plan-orchestrator contract post-check. Stage 2 supports a
 scaffold-only `stub` lane plus JSON-only model-backed authors through
 `external-json`, `claude`, and `codex` command aliases. Model-backed row authors
 run outside the product repo cwd by default, produce candidate JSON only, and
-get one bounded repair attempt before Python validation fails closed.
+get one bounded repair attempt before Python validation fails closed. The
+compiler also removes obvious repo/path/secret environment variables from
+model-backed row-author commands unless the debug-only inherit-env escape hatch
+is used.
+
+plan-orchestrator intentionally accepts some broad roots for hand-authored
+playbooks. The compiler is stricter for model-authored rows: it rejects bare
+`src`, `tests`, and `test` write roots and requires narrow roots derived from
+declared deliverables.
 
 ## plan-orchestrator
 

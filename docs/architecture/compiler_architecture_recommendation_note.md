@@ -6,7 +6,7 @@ Use the first architecture, with one small hardening: add an explicit intermedia
 
 ```text
 Stage 1: Python parse → gstack_plan_ir_v1 JSON
-Stage 2: LLM per phase → candidate PO rows JSON
+Stage 2: bounded JSON row-author call → candidate PO rows JSON
 Stage 3: Python schema + semantic validation + narrow-root checks
 Stage 4: Python deterministic markdown_playbook_v1 emitter
 Post-check: PO list-items + doctor
@@ -122,7 +122,11 @@ The LLM emits only:
 }
 ```
 
-Use **LLM per phase**, not one giant LLM call, when the plan has clear phases. That gives you local failures and easier retries:
+Current `0.2.x` implementation uses one bounded whole-plan row-author call with
+deterministic Python-built context, strict JSON output, Python validation, and
+one repair attempt. **LLM per phase** remains a future optimization for large
+plans with clear phase boundaries, where local failures and smaller retries
+matter more than a single fast call:
 
 ```text
 Phase: ingestion
@@ -132,7 +136,8 @@ Phase: verification
 Phase: launch/docs
 ```
 
-But do not make it a multi-pass LLM workflow. One LLM authoring pass per phase is enough for the fast lane.
+If adopted later, it should remain one authoring pass per phase rather than a
+general multi-pass LLM workflow.
 
 ## Stage 3 — Deterministic validation
 
@@ -364,7 +369,7 @@ with this concrete flow:
 
 ```text
 1. Python parse gstack artifacts → gstack_plan_ir_v1
-2. LLM per phase → candidate PO rows JSON
+2. bounded JSON row-author call → candidate PO rows JSON
 3. Python validate schema, paths, roots, gates, verification, prerequisites
 4. Python emit markdown_playbook_v1
 5. Python run PO list-items + doctor

@@ -97,8 +97,9 @@ keel-compile compile \
 
 Model-backed row authors are planning calls only: the compiler sends a prompt
 on stdin, expects raw `po_candidate_rows_v1` JSON on stdout, runs the command
-from an isolated temporary cwd by default, validates and repairs at most once,
-and emits Markdown itself.
+from an isolated temporary cwd with obvious repo/path/secret environment
+variables removed by default, validates and repairs at most once, and emits
+Markdown itself.
 
 Read next: `docs/concepts.md`, then
 `docs/architecture/software_framework_integration.md`.
