@@ -16,7 +16,7 @@ truth for URL, ref, install type, required/optional status, and health check.
 
 - Repository: `https://github.com/AysajanE/gstack-playbook-compiler`
 - Status: required, public, installable
-- Manifest ref: `v0.1.0` until the `0.2.0` release tag is published
+- Manifest ref: `v0.2.0` (release tag)
 - Purpose: converts reviewed gstack artifacts into `markdown_playbook_v1`
 - Wrapper: `keel-compile`
 
