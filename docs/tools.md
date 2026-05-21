@@ -16,14 +16,16 @@ truth for URL, ref, install type, required/optional status, and health check.
 
 - Repository: `https://github.com/AysajanE/gstack-playbook-compiler`
 - Status: required, public, installable
-- Manifest ref: `v0.1.0` (release tag)
+- Manifest ref: `v0.1.0` until the `0.2.0` release tag is published
 - Purpose: converts reviewed gstack artifacts into `markdown_playbook_v1`
 - Wrapper: `keel-compile`
 
 The compiler is the fast lane. It runs a four-stage pipeline (parse, author,
-validate, emit) and a plan-orchestrator contract post-check. Its row author is
-a scaffold-only stub in `v0.1.0`; real LLM authors are reserved for future
-releases.
+validate, emit) and a plan-orchestrator contract post-check. Stage 2 supports a
+scaffold-only `stub` lane plus JSON-only model-backed authors through
+`external-json`, `claude`, and `codex` command aliases. Model-backed row authors
+run outside the product repo cwd by default, produce candidate JSON only, and
+get one bounded repair attempt before Python validation fails closed.
 
 ## plan-orchestrator
 

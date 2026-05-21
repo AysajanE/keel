@@ -61,15 +61,16 @@ installable:
 
 | Tool | Status |
 |------|--------|
-| [`gstack-playbook-compiler`](https://github.com/AysajanE/gstack-playbook-compiler) | Public, installable, tagged `v0.1.0` |
+| [`gstack-playbook-compiler`](https://github.com/AysajanE/gstack-playbook-compiler) | Public, installable; `0.2.0` source supports model-backed JSON row authoring |
 | [`plan-orchestrator`](https://github.com/AysajanE/plan-orchestrator) | Public, installable, functional |
 | [`staged-workflow-runner`](https://github.com/AysajanE/staged-workflow-runner) | Public, installable, functional |
 | [`gbrain`](https://github.com/garrytan/gbrain) | Optional, public, third-party |
 
 A fresh `./install.sh` clones the three required tools from their public repos;
 `./install.sh --with gbrain` adds the optional memory layer. "Alpha" refers to
-the compiler's row author being a scaffold-only stub today, not to install
-reproducibility. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+the toolchain still being conservative about human approval and release
+boundaries, not to install reproducibility. See [`CHANGELOG.md`](CHANGELOG.md)
+for what's landed.
 
 ## Requirements
 
@@ -165,7 +166,7 @@ Set the product repository per shell:
 export PRODUCT_REPO="$HOME/path/to/product-repo"
 ```
 
-**Compile a reviewed brief into a playbook (in dry-run, today's alpha mode):**
+**Compile a reviewed brief into a playbook with a JSON-only row author:**
 
 ```bash
 keel-compile compile \
@@ -174,13 +175,17 @@ keel-compile compile \
   --autoplan "$PRODUCT_REPO/docs/gstack/<slug>-autoplan.md" \
   --approved-brief "$PRODUCT_REPO/docs/briefs/<slug>.approved-brief.md" \
   --out "$PRODUCT_REPO/docs/playbooks/<slug>.playbook.md" \
+  --row-author external-json \
+  --row-author-command "claude -p" \
   --plan-orchestrator-root "$KEEL_PO_ROOT" \
-  --human-approved-by "$USER" \
-  --dry-run
+  --human-approved-by "$USER"
 ```
 
-The three input files are gstack outputs from `/office-hours` and `/autoplan`.
-See the [explainer](docs/diagrams/keel-explained.html) for the full lifecycle.
+Model-backed row authors are JSON-only planning calls. They run isolated from
+the product repo cwd by default and must not implement code. Use `--dry-run`
+instead when you only want deterministic scaffold output. The three input files
+are gstack outputs from `/office-hours` and `/autoplan`. See the
+[explainer](docs/diagrams/keel-explained.html) for the full lifecycle.
 
 **Validate a playbook before running it:**
 

@@ -62,7 +62,8 @@ The fixture contains:
 
 ## 4. First Real Compile
 
-After the first-party tool repositories are installed:
+After the first-party tool repositories are installed, the no-key path remains
+dry-run scaffold output:
 
 ```bash
 export PRODUCT_REPO="$HOME/keel/examples/hello-world"
@@ -78,8 +79,26 @@ keel-compile compile \
   --dry-run
 ```
 
-The compiler currently has a scaffold/stub lane. Use dry-run mode until a real
-row author is available and explicitly enabled.
+For model-backed row authoring, promote the gstack artifacts into the product
+repo and run a JSON-only author command:
+
+```bash
+keel-compile compile \
+  --repo-root "$PRODUCT_REPO" \
+  --design "$PRODUCT_REPO/docs/gstack/hello-office-hours.md" \
+  --autoplan "$PRODUCT_REPO/docs/gstack/hello-autoplan.md" \
+  --approved-brief "$PRODUCT_REPO/docs/briefs/hello.approved-brief.md" \
+  --out "$PRODUCT_REPO/docs/playbooks/hello.playbook.md" \
+  --row-author external-json \
+  --row-author-command "claude -p" \
+  --plan-orchestrator-root "$KEEL_PO_ROOT" \
+  --human-approved-by "$USER"
+```
+
+Model-backed row authors are planning calls only: the compiler sends a prompt
+on stdin, expects raw `po_candidate_rows_v1` JSON on stdout, runs the command
+from an isolated temporary cwd by default, validates and repairs at most once,
+and emits Markdown itself.
 
 Read next: `docs/concepts.md`, then
 `docs/architecture/software_framework_integration.md`.
